@@ -13,3 +13,4 @@ backend/dist
 .bun
 
 node_modules
+.wrangler

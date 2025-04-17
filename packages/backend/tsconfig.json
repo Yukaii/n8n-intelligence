@@ -8,6 +8,8 @@
     "jsxImportSource": "hono/jsx", // Required for Hono JSX middleware
     "module": "ESNext", // Ensure ESNext module system
     "allowJs": true,
+    "resolveJsonModule": true,
+    "typeRoots": ["./src", "./node_modules/@types"],
 
     // Bundler mode
     "moduleResolution": "bundler",

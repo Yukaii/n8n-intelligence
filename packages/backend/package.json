@@ -10,9 +10,12 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "hono": "^4.7.7"
+    "hono": "^4.7.7",
+    "openai": "^4.95.0"
   },
   "scripts": {
-    "dev": "bun --watch src/index.ts"
+    "dev": "bun --watch src/index.ts",
+    "test": "bun test",
+    "crawl-nodes": "bun run scripts/crawl-nodes.ts"
   }
 }
