@@ -108,14 +108,14 @@ This project aims to provide an AI-powered interface to generate and manage n8n 
 
 ### 8. **Milestones**
 
-| Milestone                       | Description                                   | Target Date       |
-|----------------------------------|-----------------------------------------------|-------------------|
-| Project Setup                    | Repo, CI, base frontend/backend scaffolding   | Week 1            |
-| n8n Endpoint/Auth Integration    | User can set up and validate endpoints        | Week 2            |
-| Node Info Fetching & RAG         | Backend fetches and serves node metadata      | Week 3            |
-| AI Prompt & Workflow Generation  | End-to-end prompt to workflow JSON            | Week 4            |
-| Frontend Editor & Export         | Edit/view/export generated workflows          | Week 5            |
-| Polish & Docs                    | Final QA, docs, and deployment               | Week 6            |
+| Milestone                       | Description                                   |
+|---------------------------------|-----------------------------------------------|
+| Project Setup                    | Repo, CI, base frontend/backend scaffolding   |
+| n8n Endpoint/Auth Integration    | User can set up and validate endpoints        |
+| Node Info Fetching & RAG         | Backend fetches and serves node metadata      |
+| AI Prompt & Workflow Generation  | End-to-end prompt to workflow JSON            |
+| Frontend Editor & Export         | Edit/view/export generated workflows          |
+| Polish & Docs                    | Final QA, docs, and deployment                |
 
 ---
 
