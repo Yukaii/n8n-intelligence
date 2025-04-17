@@ -7,4 +7,4 @@ binding = "AI"
 
 [[vectorize]]
 binding = "VECTORIZE"
-index_name = "n8n-intelligence"
+index_name = "autorag-n8n-autorag"
