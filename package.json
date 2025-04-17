@@ -15,7 +15,8 @@
   ],
   "scripts": {
     "dev:all": "bun --filter '*' dev",
-    "crawl-nodes": "bun run scripts/crawl-nodes.ts"
+    "crawl-nodes": "bun run scripts/crawl-nodes.ts",
+    "insert-vectorize": "bun run scripts/embed-and-vectorize.ts"
   },
   "dependencies": {
     "n8n-nodes-base": "^1.14.1"
