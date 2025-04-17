@@ -15,7 +15,6 @@
   },
   "scripts": {
     "dev": "bun --watch src/index.ts",
-    "test": "bun test",
-    "crawl-nodes": "bun run scripts/crawl-nodes.ts"
+    "test": "bun test"
   }
 }

@@ -14,6 +14,10 @@
     "packages/backend"
   ],
   "scripts": {
-    "dev:all": "bun --filter '*' dev"
+    "dev:all": "bun --filter '*' dev",
+    "crawl-nodes": "bun run scripts/crawl-nodes.ts"
+  },
+  "dependencies": {
+    "n8n-nodes-base": "^1.14.1"
   }
 }
