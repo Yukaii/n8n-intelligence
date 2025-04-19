@@ -154,13 +154,16 @@ async function searchNodesForKeywords(keywords: string[], env: Bindings): Promis
   return { searchResults };
 }
 
-async function generateWorkflowWithAI(openai: OpenAI, prompt: string, combinedNodes: any[], userPrompt: string): Promise<any> {
-  const systemMsg = `${prompt}\n\nRelevant nodes from search: ${JSON.stringify(combinedNodes)}`;
+async function generateWorkflowWithAI(openai: OpenAI, prompt: string, nodes: any[], userPrompt: string): Promise<any> {
+  const systemMsg = `${prompt}\n\nRelevant nodes from search: ${JSON.stringify(nodes)}`;
   const userMsg = userPrompt;
   const completion = await openai.chat.completions.create({
     model: 'gpt-4.1-mini',
     messages: [{ role: 'system', content: systemMsg }, { role: 'user', content: userMsg }],
     temperature: 0,
+    response_format: {
+      type: "json_object", // Use json_object type
+    },
   });
   const content = completion.choices?.[0]?.message?.content || '';
   let workflow: unknown;
@@ -170,6 +173,27 @@ async function generateWorkflowWithAI(openai: OpenAI, prompt: string, combinedNo
     throw { error: 'Invalid JSON from AI', details: String(parseErr), content };
   }
   return workflow;
+}
+
+async function fetchFullNode(item: any, env: Bindings): Promise<any> {
+  if (item && item.filename) {
+    try {
+      const obj = await env.N8N_NODES.get(item.filename);
+      if (obj) {
+        const content = await obj.text();
+        if (!content) {
+          throw new Error('Empty content from R2');
+        }
+        return {
+          ...item,
+          content,
+        };
+      }
+    } catch (err) {
+      console.error("Error fetching full node from R2 for", item.filename, err);
+    }
+  }
+  return item;
 }
 
 async function generateWorkflowHandler(c: Context<{ Bindings: Bindings }>) {
@@ -198,16 +222,36 @@ async function generateWorkflowHandler(c: Context<{ Bindings: Bindings }>) {
     }
 
     // Flatten all data arrays from searchResults for workflow generation
-    const allNodes = searchResults.flatMap((r: any) => Array.isArray(r.data) ? r.data : []);
+    const allNodesRaw = searchResults.flatMap((r: any) => Array.isArray(r.data) ? r.data : []);
+    const allNodesFetched = await Promise.all(
+      allNodesRaw.map((item: any) => fetchFullNode(item, c.env))
+    );
+
+    // Uniqueness by file_id
+    const uniqueNodes = Array.from(new Set(allNodesFetched.map((node: any) => node.file_id)))
+      .map(id => allNodesFetched.find((node: any) => node.file_id === id));
+
+    // Map and parse content
+    const nodes = uniqueNodes.map((node: any) => {
+      const { file_id, filename, content } = node;
+      let parsedContent: any = content;
+      try {
+        parsedContent = JSON.parse(parsedContent);
+      } catch (error) {
+        // leave as string if not JSON
+        console.error("Error processing node content:", error, filename);
+      }
+      return { file_id, filename, content: parsedContent };
+    });
 
     let workflow: unknown;
     try {
-      workflow = await generateWorkflowWithAI(openai, prompt, allNodes, body.prompt);
+      workflow = await generateWorkflowWithAI(openai, prompt, nodes, body.prompt);
     } catch (err: any) {
       return c.json(err, 500);
     }
 
-    return c.json({ workflow, keywords, searchResults });
+    return c.json({ workflow, keywords, searchResults, nodes });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     return c.json({ error: msg }, 500)
@@ -223,7 +267,29 @@ async function searchHandler(c: Context<{ Bindings: Bindings }>) {
     // Reuse searchNodesForKeywords with the query as a single keyword
     const { searchResults } = await searchNodesForKeywords([query], c.env);
     // Flatten all data arrays from searchResults for combined output
-    const combined = searchResults.flatMap((r: any) => Array.isArray(r.data) ? r.data : []);
+    const combinedRaw = searchResults.flatMap((r: any) => Array.isArray(r.data) ? r.data : []);
+    const combinedFetched = await Promise.all(
+      combinedRaw.map((item: any) => fetchFullNode(item, c.env))
+    );
+
+    // Uniqueness by file_id
+    const uniqueNodes = Array.from(new Set(combinedFetched.map((node: any) => node.file_id)))
+      .map(id => combinedFetched.find((node: any) => node.file_id === id));
+
+    // Map and parse content
+    const combined = uniqueNodes.map((node: any) => {
+      console.log(node, 'node');
+      const { file_id, filename, content } = node;
+      let parsedContent: any = content && content[0] && content[0].text;
+      try {
+        parsedContent = JSON.parse(parsedContent);
+      } catch (error) {
+        // leave as string if not JSON
+        console.error("Error processing node content:", error, filename);
+      }
+      return { file_id, filename, content: parsedContent };
+    });
+
     return c.json({
       combined,
       searchResults,
