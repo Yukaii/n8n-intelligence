@@ -25,10 +25,9 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Running bun install and bun run build
+      - name: Running bun install
         run: |
           bun install
-          bun run build
         working-directory: packages/backend
       
       - name: Deploy
