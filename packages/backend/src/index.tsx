@@ -45,7 +45,6 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>()
 
-// Helper to fetch nodes from user n8n instance or default list
 async function fetchNodes(endpoint?: string, token?: string): Promise<any> {
   if (endpoint && token) {
     const res = await fetch(`${endpoint}/rest/nodes`, { headers: { Authorization: `Bearer ${token}` } });
@@ -56,7 +55,6 @@ async function fetchNodes(endpoint?: string, token?: string): Promise<any> {
   return defaultNodes;
 }
 
-// Controller functions adapted for Hono routes
 async function getNodesHandler(c: Context<{ Bindings: Bindings }>) {
   try {
     const endpoint = c.req.query('endpoint')
@@ -105,24 +103,19 @@ Return the keywords according to the provided JSON schema.`;
 
   let keywords: string[] = [];
   try {
-    // Assuming the response format forces JSON, parsing should be more reliable
     const responseContent = keywordResp.choices?.[0]?.message?.content;
     if (!responseContent) {
       throw new Error('No content received from OpenAI for keyword extraction.');
     }
-    // Parse the JSON response content
     const parsedJson = JSON.parse(responseContent);
 
-    // Expect the response to be an object like { "keywords": [...] } due to the schema
     if (parsedJson && Array.isArray(parsedJson.keywords)) {
       keywords = parsedJson.keywords;
     } else {
-      // If the expected structure isn't found, log an error and throw
       console.error("Unexpected JSON structure for keywords:", parsedJson);
       throw new Error('Keywords extracted are not in the expected {keywords: [...]} format.');
     }
 
-    // Optional: Validate that all items in the array are strings
     if (!keywords.every(kw => typeof kw === 'string')) {
       console.error("Not all items in the extracted keywords array are strings:", keywords);
       throw new Error('Keywords array contains non-string elements.');
@@ -130,7 +123,6 @@ Return the keywords according to the provided JSON schema.`;
 
   } catch (e) {
     console.error("Failed to parse keywords JSON:", e, "Raw content:", keywordResp.choices?.[0]?.message?.content);
-    // Fallback or re-throw depending on desired behavior
     throw new Error(`Failed to extract or parse keywords: ${e instanceof Error ? e.message : String(e)}`);
   }
   return keywords;
@@ -187,8 +179,8 @@ async function searchNodesForKeywords(keywords: string[], env: Bindings): Promis
   return { combinedNodes, searchResults };
 }
 
-async function generateWorkflowWithAI(openai: OpenAI, prompt: string, nodes: any, combinedNodes: any[], userPrompt: string): Promise<any> {
-  const systemMsg = `${prompt}\n\nUse only these node definitions: ${JSON.stringify(nodes)}\nRelevant nodes from search: ${JSON.stringify(combinedNodes)}`;
+async function generateWorkflowWithAI(openai: OpenAI, prompt: string, combinedNodes: any[], userPrompt: string): Promise<any> {
+  const systemMsg = `${prompt}\n\nRelevant nodes from search: ${JSON.stringify(combinedNodes)}`;
   const userMsg = userPrompt;
   const completion = await openai.chat.completions.create({
     model: 'gpt-4.1-mini',
@@ -213,7 +205,6 @@ async function generateWorkflowHandler(c: Context<{ Bindings: Bindings }>) {
 
   try {
     const openai = new OpenAI({ apiKey: import.meta.env.VITE_OPENAI_API_KEY })
-    // Step 1: Extract search keywords from the prompt using OpenAI
     let keywords: string[];
     try {
       keywords = await extractKeywordsFromPrompt(openai, body.prompt);
@@ -222,7 +213,6 @@ async function generateWorkflowHandler(c: Context<{ Bindings: Bindings }>) {
       return c.json({ error: 'Failed to extract keywords' }, 500);
     }
 
-    // Step 2: For each keyword, perform autorag search and collect nodes
     let combinedNodes: any[], searchResults: any[];
     try {
       const searchResult = await searchNodesForKeywords(keywords, c.env);
@@ -233,13 +223,9 @@ async function generateWorkflowHandler(c: Context<{ Bindings: Bindings }>) {
       return c.json({ error: 'Failed to search nodes' }, 500);
     }
 
-    // Step 3: Retrieve node definitions (from user instance or default)
-    const nodes = await fetchNodes(body.endpoint, body.token);
-
-    // Step 4: Build AI prompt for workflow generation and call OpenAI
     let workflow: unknown;
     try {
-      workflow = await generateWorkflowWithAI(openai, prompt, nodes, combinedNodes, body.prompt);
+      workflow = await generateWorkflowWithAI(openai, prompt, combinedNodes, body.prompt);
     } catch (err: any) {
       return c.json(err, 500);
     }
