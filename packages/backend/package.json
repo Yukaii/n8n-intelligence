@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "module": "src/index.ts",
+  "module": "src/index.tsx",
   "type": "module",
   "private": true,
   "devDependencies": {
