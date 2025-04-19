@@ -2,30 +2,40 @@ import { Hono } from 'hono'
 import OpenAI from 'openai'
 import type { Context } from 'hono'
 import defaultNodes from './defaultNodes.json'
+import { readFile } from 'fs/promises'
+
+let systemPrompt: string | undefined
+async function getSystemPrompt(): Promise<string> {
+  if (!systemPrompt) {
+    systemPrompt = await readFile(new URL('./prompt.md', import.meta.url), 'utf-8')
+  }
+  return systemPrompt
+}
 
 // Define the type for the Cloudflare AI binding
 interface AiBinding {
-	autorag: {
-		search(options: { query: string; topK: number }): Promise<object>; // Using object, define more specifically if known
-	};
+  autorag: {
+    search(options: { query: string; topK: number }): Promise<object>; // Using object, define more specifically if known
+  };
 }
 
 // Define the environment type
 type Bindings = {
-	AI: AiBinding;
-	OPENAI_API_KEY: string;
+  AI: AiBinding;
+  OPENAI_API_KEY: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>()
 
 // Helper to fetch nodes from user n8n instance or default list
-async function fetchNodes(endpoint?: string, token?: string): Promise<object[]> { // Expecting an array of node objects
-	if (endpoint && token) {
-		const res = await fetch(`${endpoint}/rest/nodes`, { headers: { Authorization: `Bearer ${token}` } });
+async function fetchNodes(endpoint?: string, token?: string): Promise<any> {
+  if (endpoint && token) {
+    const res = await fetch(`${endpoint}/rest/nodes`, { headers: { Authorization: `Bearer ${token}` } });
     if (!res.ok) throw new Error(`n8n responded ${res.status}`)
-return (await res.json()) as object[];
-}
-return defaultNodes;
+    return await res.json();
+  }
+
+  return defaultNodes;
 }
 
 // Controller functions adapted for Hono routes
@@ -53,12 +63,13 @@ async function generateWorkflowHandler(c: Context<{ Bindings: Bindings }>) {
     // Retrieve node definitions
     const nodes = await fetchNodes(body.endpoint, body.token)
     // Build AI prompt
-    const systemMsg = `Generate a valid n8n workflow JSON. Use only these node definitions: ${JSON.stringify(nodes)}`
+    const basePrompt = await getSystemPrompt()
+    const systemMsg = `${basePrompt}\n\nUse only these node definitions: ${JSON.stringify(nodes)}`
     const userMsg = body.prompt
     // Call OpenAI
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [ { role: 'system', content: systemMsg }, { role: 'user', content: userMsg } ],
+      model: 'gpt-4.1-mini',
+      messages: [{ role: 'system', content: systemMsg }, { role: 'user', content: userMsg }],
       temperature: 0
     })
     const content = completion.choices?.[0]?.message?.content || ''
@@ -93,8 +104,8 @@ async function searchHandler(c: Context<{ Bindings: Bindings }>) {
     const msg = err instanceof Error ? err.message : String(err)
     // Check if the error is related to the AI binding
     if (msg.includes('env.AI') || msg.includes('binding')) {
-        console.error("AI Binding Error:", err);
-        return c.json({ error: "AI binding not configured or accessible.", details: msg }, 500);
+      console.error("AI Binding Error:", err);
+      return c.json({ error: "AI binding not configured or accessible.", details: msg }, 500);
     }
     return c.json({ error: msg }, 500)
   }
