@@ -137,41 +137,53 @@ Return the keywords according to the provided JSON schema.`;
 }
 
 async function searchNodesForKeywords(keywords: string[], env: Bindings): Promise<{ combinedNodes: any[], searchResults: any[] }> {
-  const searchResults: any[] = [];
   const seenNodeIds = new Set<string>();
   const combinedNodes: any[] = [];
-  for (const keyword of keywords) {
+  console.log("Searching for keywords:", keywords);
+
+  const promises = keywords.map(async (keyword) => {
     try {
+      console.log("Searching for keyword:", keyword);
       const results = await env.AI.autorag('n8n-autorag').search({
         query: keyword,
         rewrite_query: false,
-        max_num_results: 5,
+        max_num_results: 10,
         ranking_options: { score_threshold: 0.3 },
       });
+      console.log('Search results for keyword ends:', keyword);
       const data = (results as any).data || [];
-      for (const item of data) {
-        const filename = item.filename;
-        let fileContent = null;
-        try {
-          const obj = await env.N8N_NODES.get(filename);
-          if (obj) {
-            try {
-              fileContent = await obj.json();
-            } catch {
-              fileContent = { error: 'Failed to parse JSON' };
+      // Fetch all node files in parallel for this keyword
+      await Promise.all(
+        data.map(async (item: any) => {
+          const filename = item.filename;
+          let fileContent = null;
+          try {
+            const obj = await env.N8N_NODES.get(filename);
+            if (obj) {
+              try {
+                fileContent = await obj.json();
+              } catch (err) {
+                console.error("Error parsing JSON for node file:", filename, err);
+                fileContent = { error: 'Failed to parse JSON' };
+              }
             }
+          } catch (err) {
+            console.error("Error fetching node file:", filename, err);
           }
-        } catch { }
-        if (fileContent && fileContent.name && !seenNodeIds.has(fileContent.name)) {
-          seenNodeIds.add(fileContent.name);
-          combinedNodes.push(fileContent);
-        }
-      }
-      searchResults.push({ keyword, data });
+          if (fileContent && fileContent.name && !seenNodeIds.has(fileContent.name)) {
+            seenNodeIds.add(fileContent.name);
+            combinedNodes.push(fileContent);
+          }
+        })
+      );
+      return { keyword, data };
     } catch (e) {
-      searchResults.push({ keyword, error: String(e) });
+      console.error("Error during search for keyword:", keyword, e);
+      return { keyword, error: String(e) };
     }
-  }
+  });
+
+  const searchResults = await Promise.all(promises);
   return { combinedNodes, searchResults };
 }
 
