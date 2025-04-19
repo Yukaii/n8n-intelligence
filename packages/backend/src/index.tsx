@@ -129,9 +129,7 @@ Return the keywords according to the provided JSON schema.`;
   return keywords;
 }
 
-async function searchNodesForKeywords(keywords: string[], env: Bindings): Promise<{ combinedNodes: any[], searchResults: any[] }> {
-  const seenNodeIds = new Set<string>();
-  const combinedNodes: any[] = [];
+async function searchNodesForKeywords(keywords: string[], env: Bindings): Promise<{ searchResults: any[] }> {
   console.log("Searching for keywords:", keywords);
 
   const promises = keywords.map(async (keyword) => {
@@ -140,35 +138,11 @@ async function searchNodesForKeywords(keywords: string[], env: Bindings): Promis
       const results = await env.AI.autorag('n8n-autorag').search({
         query: keyword,
         rewrite_query: false,
-        max_num_results: 10,
+        max_num_results: 3,
         ranking_options: { score_threshold: 0.3 },
       });
       console.log('Search results for keyword ends:', keyword);
       const data = (results as any).data || [];
-      // Fetch all node files in parallel for this keyword
-      await Promise.all(
-        data.map(async (item: any) => {
-          const filename = item.filename;
-          let fileContent = null;
-          try {
-            const obj = await env.N8N_NODES.get(filename);
-            if (obj) {
-              try {
-                fileContent = await obj.json();
-              } catch (err) {
-                console.error("Error parsing JSON for node file:", filename, err);
-                fileContent = { error: 'Failed to parse JSON' };
-              }
-            }
-          } catch (err) {
-            console.error("Error fetching node file:", filename, err);
-          }
-          if (fileContent && fileContent.name && !seenNodeIds.has(fileContent.name)) {
-            seenNodeIds.add(fileContent.name);
-            combinedNodes.push(fileContent);
-          }
-        })
-      );
       return { keyword, data };
     } catch (e) {
       console.error("Error during search for keyword:", keyword, e);
@@ -177,7 +151,7 @@ async function searchNodesForKeywords(keywords: string[], env: Bindings): Promis
   });
 
   const searchResults = await Promise.all(promises);
-  return { combinedNodes, searchResults };
+  return { searchResults };
 }
 
 async function generateWorkflowWithAI(openai: OpenAI, prompt: string, combinedNodes: any[], userPrompt: string): Promise<any> {
@@ -214,19 +188,21 @@ async function generateWorkflowHandler(c: Context<{ Bindings: Bindings }>) {
       return c.json({ error: 'Failed to extract keywords' }, 500);
     }
 
-    let combinedNodes: any[], searchResults: any[];
+    let searchResults: any[];
     try {
       const searchResult = await searchNodesForKeywords(keywords, c.env);
-      combinedNodes = searchResult.combinedNodes;
       searchResults = searchResult.searchResults;
     } catch (err) {
       console.error("Node search error:", err);
       return c.json({ error: 'Failed to search nodes' }, 500);
     }
 
+    // Flatten all data arrays from searchResults for workflow generation
+    const allNodes = searchResults.flatMap((r: any) => Array.isArray(r.data) ? r.data : []);
+
     let workflow: unknown;
     try {
-      workflow = await generateWorkflowWithAI(openai, prompt, combinedNodes, body.prompt);
+      workflow = await generateWorkflowWithAI(openai, prompt, allNodes, body.prompt);
     } catch (err: any) {
       return c.json(err, 500);
     }
@@ -245,9 +221,11 @@ async function searchHandler(c: Context<{ Bindings: Bindings }>) {
   }
   try {
     // Reuse searchNodesForKeywords with the query as a single keyword
-    const { combinedNodes, searchResults } = await searchNodesForKeywords([query], c.env);
+    const { searchResults } = await searchNodesForKeywords([query], c.env);
+    // Flatten all data arrays from searchResults for combined output
+    const combined = searchResults.flatMap((r: any) => Array.isArray(r.data) ? r.data : []);
     return c.json({
-      combined: combinedNodes,
+      combined,
       searchResults,
     });
   } catch (err: unknown) {
