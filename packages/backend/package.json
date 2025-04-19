@@ -4,10 +4,12 @@
   "type": "module",
   "private": true,
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.0.8",
     "@types/bun": "latest",
     "vite": "^6.3.2",
-    "wrangler": "^4.12.0"
+    "wrangler": "^4.12.0",
+    "@cloudflare/vite-plugin": "^0.1.15",
+    "@hono/vite-build": "^1.5.0",
+    "vite-plugin-ssr-hot-reload": "^0.4.1"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -17,9 +19,10 @@
     "openai": "^4.95.0"
   },
   "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
-    "preview": "npm run build && vite preview",
-    "deploy": "npm run build && wrangler deploy"
+    "dev": "vite",
+    "build": "vite build && vite build --ssr",
+    "preview": "$npm_execpath run build && wrangler dev dist-server/index.js",
+    "deploy": "$npm_execpath run build && wrangler deploy dist-server/index.js",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   }
 }

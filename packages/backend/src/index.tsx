@@ -4,6 +4,7 @@ import type { Context } from 'hono'
 // @ts-ignore
 import prompt from './prompt.md?raw'
 import defaultNodes from './defaultNodes.json'
+import { renderer } from './renderer'
 
 // Define the type for the Cloudflare AI binding
 interface AutoragSearchOptions {
@@ -69,18 +70,75 @@ async function getNodesHandler(c: Context<{ Bindings: Bindings }>) {
 }
 
 async function extractKeywordsFromPrompt(openai: OpenAI, userPrompt: string): Promise<string[]> {
-  const keywordPrompt = `Extract up to 5 concise search keywords or phrases from the following user prompt for n8n workflow building. Return as a JSON array of strings. Prompt: "${userPrompt}"`;
+  const systemPrompt = `You are an expert at extracting relevant search terms for finding n8n nodes.
+Given a user prompt describing an n8n workflow, extract up to 5 concise keywords or phrases that best represent the core actions, services, or data transformations involved.
+Focus on terms likely to match n8n node names or functionalities. Avoid generic words.
+Return the keywords as a JSON array of strings.`;
+
   const keywordResp = await openai.chat.completions.create({
-    model: 'gpt-4.1-mini',
-    messages: [{ role: 'system', content: 'You are a helpful assistant.' }, { role: 'user', content: keywordPrompt }],
-    temperature: 0,
+    model: 'gpt-4.1-nano',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ],
+    response_format:
+    {
+      type: "json_schema", json_schema: {
+        name: "keywords",
+        description: "Extracted keywords",
+        schema: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        strict: true
+      }
+    },
   });
+
+  console.log("Keyword extraction response:", keywordResp);
+
   let keywords: string[] = [];
   try {
-    keywords = JSON.parse(keywordResp.choices?.[0]?.message?.content || '[]');
-    if (!Array.isArray(keywords)) throw new Error('Not an array');
-  } catch {
-    throw new Error('Failed to extract keywords');
+    // Assuming the response format forces JSON, parsing should be more reliable
+    const responseContent = keywordResp.choices?.[0]?.message?.content;
+    if (!responseContent) {
+      throw new Error('No content received from OpenAI for keyword extraction.');
+    }
+    // The actual keywords might be nested if the model wraps it, adjust as needed
+    // Example: If model returns { "keywords": [...] }
+    const parsedJson = JSON.parse(responseContent);
+    // Adjust this line based on the actual structure returned by the model
+    // Handle potential nesting like {"result": [...]} or {"keywords": [...]}
+    if (Array.isArray(parsedJson.result)) {
+      keywords = parsedJson.result;
+    } else if (Array.isArray(parsedJson.keywords)) {
+      keywords = parsedJson.keywords;
+    } else if (Array.isArray(parsedJson)) {
+      keywords = parsedJson; // Direct array case
+    } else {
+      // If none of the expected structures match, throw an error before the Array.isArray check below
+      console.error("Unexpected JSON structure for keywords:", parsedJson);
+      throw new Error('Keywords extracted are not in a recognized array format (expected direct array, {keywords: [...]}, or {result: [...]}).');
+    }
+
+    // This check remains as a safeguard, but the logic above should handle structure variations.
+    if (!Array.isArray(keywords)) {
+      // This path should theoretically not be reached if the logic above is correct, but kept for safety.
+      console.error("Keywords variable is not an array after attempting extraction:", keywords);
+      throw new Error('Keywords extracted are not in the expected array format.');
+    }
+    // Optional: Add validation for string elements if needed
+    if (!keywords.every(kw => typeof kw === 'string')) {
+      console.error("Not all items in keywords array are strings:", keywords);
+      throw new Error('Keywords array contains non-string elements.');
+    }
+
+  } catch (e) {
+    console.error("Failed to parse keywords JSON:", e, "Raw content:", keywordResp.choices?.[0]?.message?.content);
+    // Fallback or re-throw depending on desired behavior
+    throw new Error(`Failed to extract or parse keywords: ${e instanceof Error ? e.message : String(e)}`);
   }
   return keywords;
 }
@@ -110,7 +168,7 @@ async function searchNodesForKeywords(keywords: string[], env: Bindings): Promis
               fileContent = { error: 'Failed to parse JSON' };
             }
           }
-        } catch {}
+        } catch { }
         if (fileContent && fileContent.name && !seenNodeIds.has(fileContent.name)) {
           seenNodeIds.add(fileContent.name);
           combinedNodes.push(fileContent);
@@ -147,8 +205,9 @@ async function generateWorkflowHandler(c: Context<{ Bindings: Bindings }>) {
   if (!body.prompt) {
     return c.json({ error: 'Prompt is required' }, 400)
   }
+
   try {
-    const openai = new OpenAI({ apiKey: c.env.OPENAI_API_KEY })
+    const openai = new OpenAI({ apiKey: import.meta.env.VITE_OPENAI_API_KEY })
 
     // Step 1: Extract search keywords from the prompt using OpenAI
     let keywords: string[];
@@ -251,5 +310,10 @@ app.get('/nodes', getNodesHandler)
 app.post('/generate-workflow', generateWorkflowHandler)
 app.get('/search', searchHandler)
 
-// Export the Hono app
+app.use(renderer)
+app.get('/', (c) => {
+  return c.render(<h1>Hello!</h1>)
+})
+
+// Export the Hono app in the Cloudflare Worker format
 export default app

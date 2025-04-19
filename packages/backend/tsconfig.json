@@ -1,31 +1,15 @@
 {
   "compilerOptions": {
-    // Environment setup & latest features
-    "lib": ["esnext"],
     "target": "ESNext",
-    "moduleDetection": "force",
-    "jsx": "react-jsx", // Required for Hono JSX middleware
-    "jsxImportSource": "hono/jsx", // Required for Hono JSX middleware
-    "module": "ESNext", // Ensure ESNext module system
-    "allowJs": true,
-    "resolveJsonModule": true,
-    "typeRoots": ["./src", "./node_modules/@types"],
-
-    // Bundler mode
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-    "noEmit": true,
-
-    // Best practices
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "strict": true,
     "skipLibCheck": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-
-    // Some stricter flags (disabled by default)
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false
-  }
+    "lib": [
+      "ESNext"
+    ],
+    "types": ["vite/client"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx"
+  },
 }
