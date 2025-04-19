@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import OpenAI from 'openai'
 import type { Context } from 'hono'
+import { env } from 'hono/adapter'
 // @ts-ignore
 import prompt from './prompt.md?raw'
 import defaultNodes from './defaultNodes.json'
@@ -204,7 +205,7 @@ async function generateWorkflowHandler(c: Context<{ Bindings: Bindings }>) {
   }
 
   try {
-    const openai = new OpenAI({ apiKey: import.meta.env.OPENAI_API_KEY })
+    const openai = new OpenAI({ apiKey: env<{ OPENAI_API_KEY: string }>(c).OPENAI_API_KEY });
     let keywords: string[];
     try {
       keywords = await extractKeywordsFromPrompt(openai, body.prompt);
