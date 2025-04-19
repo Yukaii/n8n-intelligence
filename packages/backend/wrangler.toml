@@ -8,3 +8,7 @@ binding = "AI"
 [[vectorize]]
 binding = "VECTORIZE"
 index_name = "autorag-n8n-autorag"
+
+[[r2_buckets]]
+binding = 'N8N_NODES'
+bucket_name = 'n8n-nodes'

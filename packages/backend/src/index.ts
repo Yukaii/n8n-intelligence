@@ -27,10 +27,19 @@ interface AiBinding {
   autorag: AutoragCallable;
 }
 
-// Define the environment type
+interface R2Bucket {
+  get(key: string): Promise<R2ObjectBody | null>;
+}
+interface R2ObjectBody {
+  body: ReadableStream<any> | null;
+  text(): Promise<string>;
+  json(): Promise<any>;
+}
+
 type Bindings = {
   AI: AiBinding;
   OPENAI_API_KEY: string;
+  N8N_NODES: R2Bucket;
 };
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -100,7 +109,6 @@ async function searchHandler(c: Context<{ Bindings: Bindings }>) {
   if (!query) {
     return c.json({ error: 'Query parameter q is required' }, 400)
   }
-  // Use Cloudflare AI vector search via bindings
   try {
     const results = await c.env.AI.autorag('n8n-autorag').search({
       query,
@@ -110,15 +118,45 @@ async function searchHandler(c: Context<{ Bindings: Bindings }>) {
         score_threshold: 0.3,
       },
     });
-    return c.json(results)
+
+    // Expecting results.data to be an array of vector search results
+    const data = (results as any).data || [];
+    const combined = [];
+    for (const item of data) {
+      const filename = item.filename;
+      let fileContent = null;
+      try {
+        const obj = await c.env.N8N_NODES.get(filename);
+        if (obj) {
+          try {
+            fileContent = await obj.json();
+          } catch (jsonErr) {
+            // If .json() fails, try .text() for debugging
+            const text = await obj.text();
+            fileContent = { error: 'Failed to parse JSON', raw: text };
+          }
+        } else {
+          fileContent = { error: 'File not found in R2 bucket' };
+        }
+      } catch (e) {
+        fileContent = { error: 'Failed to fetch or parse file', details: String(e) };
+      }
+      combined.push({
+        ...item,
+        file_content: fileContent,
+      });
+    }
+    console.log("Search results:", combined);
+    return c.json({
+      ...results,
+      combined,
+    });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
-    // Check if the error is related to the AI binding
     if (msg.includes('env.AI') || msg.includes('binding')) {
       console.error("AI Binding Error:", err);
       return c.json({ error: "AI binding not configured or accessible.", details: msg }, 500);
-    } 
-
+    }
     console.error("Search Handler Error:", msg);
     return c.json({ error: msg }, 500)
   }
