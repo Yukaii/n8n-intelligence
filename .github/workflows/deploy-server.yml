@@ -1,0 +1,32 @@
+name: Deploy Server to Cloudflare Worker
+
+on:
+  workflow_dispatch: # Allows manual triggering
+  push:
+    branches:
+      - main # Trigger deployment only on pushes to the main branch
+    paths:
+      - 'packages/backend/**' # Only run if files in the server directory change
+      - '.github/workflows/deploy-server.yml' # Or if the workflow file itself changes
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write # Required for cloudflare/pages-action
+    name: Deploy Server to Cloudflare Worker
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Deploy with Wrangler
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: packages/backend
