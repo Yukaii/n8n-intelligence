@@ -73,7 +73,7 @@ async function extractKeywordsFromPrompt(openai: OpenAI, userPrompt: string): Pr
   const systemPrompt = `You are an expert at extracting relevant search terms for finding n8n nodes.
 Given a user prompt describing an n8n workflow, extract up to 5 concise keywords or phrases that best represent the core actions, services, or data transformations involved.
 Focus on terms likely to match n8n node names or functionalities. Avoid generic words.
-Return the keywords as a JSON array of strings.`;
+Return the keywords according to the provided JSON schema.`;
 
   const keywordResp = await openai.chat.completions.create({
     model: 'gpt-4.1-nano',
@@ -81,23 +81,27 @@ Return the keywords as a JSON array of strings.`;
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt }
     ],
-    response_format:
-    {
-      type: "json_schema", json_schema: {
-        name: "keywords",
-        description: "Extracted keywords",
-        schema: {
-          type: "array",
-          items: {
-            type: "string"
-          }
+    response_format: {
+      type: "json_schema", // Use json_schema type
+      json_schema: {
+        name: "keywords_object", // Schema name
+        description: "An object containing a list of extracted keywords for n8n node search.",
+        schema: { // Define the object schema
+          type: "object",
+          properties: {
+            keywords: {
+              type: "array",
+              items: { type: "string" },
+              description: "Up to 5 relevant keywords or phrases."
+            }
+          },
+          required: ["keywords"], // The 'keywords' property is required
+          additionalProperties: false // Disallow extra properties
         },
-        strict: true
+        strict: true // Enforce the schema strictly
       }
     },
   });
-
-  console.log("Keyword extraction response:", keywordResp);
 
   let keywords: string[] = [];
   try {
@@ -106,32 +110,21 @@ Return the keywords as a JSON array of strings.`;
     if (!responseContent) {
       throw new Error('No content received from OpenAI for keyword extraction.');
     }
-    // The actual keywords might be nested if the model wraps it, adjust as needed
-    // Example: If model returns { "keywords": [...] }
+    // Parse the JSON response content
     const parsedJson = JSON.parse(responseContent);
-    // Adjust this line based on the actual structure returned by the model
-    // Handle potential nesting like {"result": [...]} or {"keywords": [...]}
-    if (Array.isArray(parsedJson.result)) {
-      keywords = parsedJson.result;
-    } else if (Array.isArray(parsedJson.keywords)) {
+
+    // Expect the response to be an object like { "keywords": [...] } due to the schema
+    if (parsedJson && Array.isArray(parsedJson.keywords)) {
       keywords = parsedJson.keywords;
-    } else if (Array.isArray(parsedJson)) {
-      keywords = parsedJson; // Direct array case
     } else {
-      // If none of the expected structures match, throw an error before the Array.isArray check below
+      // If the expected structure isn't found, log an error and throw
       console.error("Unexpected JSON structure for keywords:", parsedJson);
-      throw new Error('Keywords extracted are not in a recognized array format (expected direct array, {keywords: [...]}, or {result: [...]}).');
+      throw new Error('Keywords extracted are not in the expected {keywords: [...]} format.');
     }
 
-    // This check remains as a safeguard, but the logic above should handle structure variations.
-    if (!Array.isArray(keywords)) {
-      // This path should theoretically not be reached if the logic above is correct, but kept for safety.
-      console.error("Keywords variable is not an array after attempting extraction:", keywords);
-      throw new Error('Keywords extracted are not in the expected array format.');
-    }
-    // Optional: Add validation for string elements if needed
+    // Optional: Validate that all items in the array are strings
     if (!keywords.every(kw => typeof kw === 'string')) {
-      console.error("Not all items in keywords array are strings:", keywords);
+      console.error("Not all items in the extracted keywords array are strings:", keywords);
       throw new Error('Keywords array contains non-string elements.');
     }
 
@@ -208,12 +201,12 @@ async function generateWorkflowHandler(c: Context<{ Bindings: Bindings }>) {
 
   try {
     const openai = new OpenAI({ apiKey: import.meta.env.VITE_OPENAI_API_KEY })
-
     // Step 1: Extract search keywords from the prompt using OpenAI
     let keywords: string[];
     try {
       keywords = await extractKeywordsFromPrompt(openai, body.prompt);
     } catch (err) {
+      console.error("Keyword extraction error:", err);
       return c.json({ error: 'Failed to extract keywords' }, 500);
     }
 
@@ -224,6 +217,7 @@ async function generateWorkflowHandler(c: Context<{ Bindings: Bindings }>) {
       combinedNodes = searchResult.combinedNodes;
       searchResults = searchResult.searchResults;
     } catch (err) {
+      console.error("Node search error:", err);
       return c.json({ error: 'Failed to search nodes' }, 500);
     }
 

@@ -22,7 +22,8 @@ describe('API Integration (Cloudflare Worker style)', () => {
     expect(data.error).toBeDefined()
   })
 
-  it('POST /generate-workflow returns 200 on valid prompt', async () => {
+  it.only('POST /generate-workflow returns 200 on valid prompt', async () => {
+    console.log('Running test for POST /generate-workflow')
     // Valid prompt (minimal, may still error if backend requires more setup)
     const res = await makeRequest('/generate-workflow', {
       method: 'POST',
@@ -33,7 +34,7 @@ describe('API Integration (Cloudflare Worker style)', () => {
     expect(res.status).toBe(200)
     const data = await res.json() as any
     expect(data).toBeDefined()
-  }, 30000) // Increase timeout to 30 seconds
+  }, 10 * 1000)
 
   it('GET /search returns error on missing query', async () => {
     const res = await makeRequest('/search')
