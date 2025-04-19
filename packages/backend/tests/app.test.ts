@@ -22,7 +22,7 @@ describe('API Integration (Cloudflare Worker style)', () => {
     expect(data.error).toBeDefined()
   })
 
-  it.only('POST /generate-workflow returns 200 on valid prompt', async () => {
+  it('POST /generate-workflow returns 200 on valid prompt', async () => {
     console.log('Running test for POST /generate-workflow')
     // Valid prompt (minimal, may still error if backend requires more setup)
     const res = await makeRequest('/generate-workflow', {
