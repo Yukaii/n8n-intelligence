@@ -204,7 +204,7 @@ async function generateWorkflowHandler(c: Context<{ Bindings: Bindings }>) {
   }
 
   try {
-    const openai = new OpenAI({ apiKey: import.meta.env.VITE_OPENAI_API_KEY })
+    const openai = new OpenAI({ apiKey: import.meta.env.OPENAI_API_KEY })
     let keywords: string[];
     try {
       keywords = await extractKeywordsFromPrompt(openai, body.prompt);
