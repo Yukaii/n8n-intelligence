@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'bun:test'
 // Controller functions are no longer exported; integration tests only
 
+const PORT = Bun.env.PORT || 5173
+
 function makeRequest(path: string, options: RequestInit = {}) {
-  return fetch(`http://localhost:8787${path}`, options)
+  return fetch(`http://localhost:${PORT}${path}`, options)
 }
 
 describe('API Integration (Cloudflare Worker style)', () => {

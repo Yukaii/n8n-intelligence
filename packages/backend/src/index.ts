@@ -1,16 +1,9 @@
 import { Hono } from 'hono'
 import OpenAI from 'openai'
 import type { Context } from 'hono'
+// @ts-ignore
+import prompt from './prompt.md?raw'
 import defaultNodes from './defaultNodes.json'
-import { readFile } from 'fs/promises'
-
-let systemPrompt: string | undefined
-async function getSystemPrompt(): Promise<string> {
-  if (!systemPrompt) {
-    systemPrompt = await readFile(new URL('./prompt.md', import.meta.url), 'utf-8')
-  }
-  return systemPrompt
-}
 
 // Define the type for the Cloudflare AI binding
 interface AiBinding {
@@ -63,8 +56,7 @@ async function generateWorkflowHandler(c: Context<{ Bindings: Bindings }>) {
     // Retrieve node definitions
     const nodes = await fetchNodes(body.endpoint, body.token)
     // Build AI prompt
-    const basePrompt = await getSystemPrompt()
-    const systemMsg = `${basePrompt}\n\nUse only these node definitions: ${JSON.stringify(nodes)}`
+    const systemMsg = `${prompt}\n\nUse only these node definitions: ${JSON.stringify(nodes)}`
     const userMsg = body.prompt
     // Call OpenAI
     const completion = await openai.chat.completions.create({
