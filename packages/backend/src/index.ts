@@ -68,34 +68,118 @@ async function getNodesHandler(c: Context<{ Bindings: Bindings }>) {
   }
 }
 
+async function extractKeywordsFromPrompt(openai: OpenAI, userPrompt: string): Promise<string[]> {
+  const keywordPrompt = `Extract up to 5 concise search keywords or phrases from the following user prompt for n8n workflow building. Return as a JSON array of strings. Prompt: "${userPrompt}"`;
+  const keywordResp = await openai.chat.completions.create({
+    model: 'gpt-4.1-mini',
+    messages: [{ role: 'system', content: 'You are a helpful assistant.' }, { role: 'user', content: keywordPrompt }],
+    temperature: 0,
+  });
+  let keywords: string[] = [];
+  try {
+    keywords = JSON.parse(keywordResp.choices?.[0]?.message?.content || '[]');
+    if (!Array.isArray(keywords)) throw new Error('Not an array');
+  } catch {
+    throw new Error('Failed to extract keywords');
+  }
+  return keywords;
+}
+
+async function searchNodesForKeywords(keywords: string[], env: Bindings): Promise<{ combinedNodes: any[], searchResults: any[] }> {
+  const searchResults: any[] = [];
+  const seenNodeIds = new Set<string>();
+  const combinedNodes: any[] = [];
+  for (const keyword of keywords) {
+    try {
+      const results = await env.AI.autorag('n8n-autorag').search({
+        query: keyword,
+        rewrite_query: false,
+        max_num_results: 5,
+        ranking_options: { score_threshold: 0.3 },
+      });
+      const data = (results as any).data || [];
+      for (const item of data) {
+        const filename = item.filename;
+        let fileContent = null;
+        try {
+          const obj = await env.N8N_NODES.get(filename);
+          if (obj) {
+            try {
+              fileContent = await obj.json();
+            } catch {
+              fileContent = { error: 'Failed to parse JSON' };
+            }
+          }
+        } catch {}
+        if (fileContent && fileContent.name && !seenNodeIds.has(fileContent.name)) {
+          seenNodeIds.add(fileContent.name);
+          combinedNodes.push(fileContent);
+        }
+      }
+      searchResults.push({ keyword, data });
+    } catch (e) {
+      searchResults.push({ keyword, error: String(e) });
+    }
+  }
+  return { combinedNodes, searchResults };
+}
+
+async function generateWorkflowWithAI(openai: OpenAI, prompt: string, nodes: any, combinedNodes: any[], userPrompt: string): Promise<any> {
+  const systemMsg = `${prompt}\n\nUse only these node definitions: ${JSON.stringify(nodes)}\nRelevant nodes from search: ${JSON.stringify(combinedNodes)}`;
+  const userMsg = userPrompt;
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4.1-mini',
+    messages: [{ role: 'system', content: systemMsg }, { role: 'user', content: userMsg }],
+    temperature: 0,
+  });
+  const content = completion.choices?.[0]?.message?.content || '';
+  let workflow: unknown;
+  try {
+    workflow = JSON.parse(content);
+  } catch (parseErr) {
+    throw { error: 'Invalid JSON from AI', details: String(parseErr), content };
+  }
+  return workflow;
+}
+
 async function generateWorkflowHandler(c: Context<{ Bindings: Bindings }>) {
   const body = await c.req.json<{ prompt?: string; endpoint?: string; token?: string }>()
   if (!body.prompt) {
     return c.json({ error: 'Prompt is required' }, 400)
   }
   try {
-    // Initialize OpenAI client within the handler to access env vars
     const openai = new OpenAI({ apiKey: c.env.OPENAI_API_KEY })
 
-    // Retrieve node definitions
-    const nodes = await fetchNodes(body.endpoint, body.token)
-    // Build AI prompt
-    const systemMsg = `${prompt}\n\nUse only these node definitions: ${JSON.stringify(nodes)}`
-    const userMsg = body.prompt
-    // Call OpenAI
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4.1-mini',
-      messages: [{ role: 'system', content: systemMsg }, { role: 'user', content: userMsg }],
-      temperature: 0
-    })
-    const content = completion.choices?.[0]?.message?.content || ''
-    let workflow: unknown
+    // Step 1: Extract search keywords from the prompt using OpenAI
+    let keywords: string[];
     try {
-      workflow = JSON.parse(content)
-    } catch (parseErr) {
-      return c.json({ error: 'Invalid JSON from AI', details: String(parseErr), content }, 500)
+      keywords = await extractKeywordsFromPrompt(openai, body.prompt);
+    } catch (err) {
+      return c.json({ error: 'Failed to extract keywords' }, 500);
     }
-    return c.json({ workflow })
+
+    // Step 2: For each keyword, perform autorag search and collect nodes
+    let combinedNodes: any[], searchResults: any[];
+    try {
+      const searchResult = await searchNodesForKeywords(keywords, c.env);
+      combinedNodes = searchResult.combinedNodes;
+      searchResults = searchResult.searchResults;
+    } catch (err) {
+      return c.json({ error: 'Failed to search nodes' }, 500);
+    }
+
+    // Step 3: Retrieve node definitions (from user instance or default)
+    const nodes = await fetchNodes(body.endpoint, body.token);
+
+    // Step 4: Build AI prompt for workflow generation and call OpenAI
+    let workflow: unknown;
+    try {
+      workflow = await generateWorkflowWithAI(openai, prompt, nodes, combinedNodes, body.prompt);
+    } catch (err: any) {
+      return c.json(err, 500);
+    }
+
+    return c.json({ workflow, keywords, searchResults });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     return c.json({ error: msg }, 500)
