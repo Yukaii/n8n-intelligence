@@ -6,10 +6,25 @@ import prompt from './prompt.md?raw'
 import defaultNodes from './defaultNodes.json'
 
 // Define the type for the Cloudflare AI binding
-interface AiBinding {
-  autorag: {
-    search(options: { query: string; topK: number }): Promise<object>; // Using object, define more specifically if known
+interface AutoragSearchOptions {
+  query: string;
+  rewrite_query?: boolean;
+  max_num_results?: number;
+  ranking_options?: {
+    score_threshold?: number;
   };
+}
+
+interface AutoragNamespace {
+  search(options: AutoragSearchOptions): Promise<object>;
+}
+
+interface AutoragCallable {
+  (namespace?: string): AutoragNamespace;
+}
+
+interface AiBinding {
+  autorag: AutoragCallable;
 }
 
 // Define the environment type
@@ -87,10 +102,14 @@ async function searchHandler(c: Context<{ Bindings: Bindings }>) {
   }
   // Use Cloudflare AI vector search via bindings
   try {
-    const results = await c.env.AI.autorag.search({ // Assuming autorag is the correct namespace
+    const results = await c.env.AI.autorag('n8n-autorag').search({
       query,
-      topK
-    })
+      rewrite_query: false,
+      max_num_results: topK,
+      ranking_options: {
+        score_threshold: 0.3,
+      },
+    });
     return c.json(results)
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -98,7 +117,9 @@ async function searchHandler(c: Context<{ Bindings: Bindings }>) {
     if (msg.includes('env.AI') || msg.includes('binding')) {
       console.error("AI Binding Error:", err);
       return c.json({ error: "AI binding not configured or accessible.", details: msg }, 500);
-    }
+    } 
+
+    console.error("Search Handler Error:", msg);
     return c.json({ error: msg }, 500)
   }
 }

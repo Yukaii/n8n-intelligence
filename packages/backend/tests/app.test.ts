@@ -28,4 +28,12 @@ describe('API Integration (Cloudflare Worker style)', () => {
     const data = await res.json()
     expect(data.error).toBeDefined()
   })
+
+  it('GET /search returns results for sample query', async () => {
+    const res = await makeRequest('/search?q=How%20do%20I%20train%20a%20llama%20to%20deliver%20coffee%3F&k=2')
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data).toBeDefined()
+    // Optionally check for expected structure, e.g. expect(Array.isArray(data.results) || typeof data === 'object').toBe(true)
+  })
 })
