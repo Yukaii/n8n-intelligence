@@ -25,8 +25,15 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Deploy with Wrangler
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          workingDirectory: packages/backend
+      - name: Running bun install and bun run build
+        run: |
+          bun install
+          bun run build
+        working-directory: packages/backend
+      
+      - name: Deploy
+        run: |
+          bun run deploy
+        working-directory: packages/backend
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
