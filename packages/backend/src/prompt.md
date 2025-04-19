@@ -6,7 +6,7 @@ A workflow is a collection of nodes and the connections between them.
 
 ```json
 {
-  "id": "string",
+  "id": "uuid",
   "name": "string",
   "active": true,
   "nodes": [/* array of Node objects */],
@@ -133,7 +133,7 @@ Workflow-level settings, e.g. timezone, error workflow, execution options.
 {
   "nodes": [
     {
-      "id": "1",
+      "id": "uuid-1",
       "name": "Start",
       "type": "n8n-nodes-base.start",
       "typeVersion": 1,
@@ -141,7 +141,7 @@ Workflow-level settings, e.g. timezone, error workflow, execution options.
       "parameters": {}
     },
     {
-      "id": "2",
+      "id": "uuid-2",
       "name": "Send Email",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 1,
