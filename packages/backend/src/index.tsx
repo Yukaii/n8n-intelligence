@@ -253,52 +253,15 @@ async function generateWorkflowHandler(c: Context<{ Bindings: Bindings }>) {
 
 async function searchHandler(c: Context<{ Bindings: Bindings }>) {
   const query = c.req.query('q')
-  const kParam = c.req.query('k')
-  const topK = kParam ? Number.parseInt(kParam) : 3
   if (!query) {
     return c.json({ error: 'Query parameter q is required' }, 400)
   }
   try {
-    const results = await c.env.AI.autorag('n8n-autorag').search({
-      query,
-      rewrite_query: false,
-      max_num_results: topK,
-      ranking_options: {
-        score_threshold: 0.3,
-      },
-    });
-
-    // Expecting results.data to be an array of vector search results
-    const data = (results as any).data || [];
-    const combined = [];
-    for (const item of data) {
-      const filename = item.filename;
-      let fileContent = null;
-      try {
-        const obj = await c.env.N8N_NODES.get(filename);
-        if (obj) {
-          try {
-            fileContent = await obj.json();
-          } catch (jsonErr) {
-            // If .json() fails, try .text() for debugging
-            const text = await obj.text();
-            fileContent = { error: 'Failed to parse JSON', raw: text };
-          }
-        } else {
-          fileContent = { error: 'File not found in R2 bucket' };
-        }
-      } catch (e) {
-        fileContent = { error: 'Failed to fetch or parse file', details: String(e) };
-      }
-      combined.push({
-        ...item,
-        file_content: fileContent,
-      });
-    }
-    console.log("Search results:", combined);
+    // Reuse searchNodesForKeywords with the query as a single keyword
+    const { combinedNodes, searchResults } = await searchNodesForKeywords([query], c.env);
     return c.json({
-      ...results,
-      combined,
+      combined: combinedNodes,
+      searchResults,
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
