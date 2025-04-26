@@ -128,32 +128,35 @@ Return the keywords according to the provided JSON schema.`;
   return keywords;
 }
 
+// Refactored to perform a single search with combined keywords
 async function searchNodesForKeywords(keywords: string[], env: Bindings): Promise<{ searchResults: any[] }> {
-  console.log("Searching for keywords:", keywords);
+  const combinedQuery = keywords.join(' ');
+  console.log("Searching with combined query:", combinedQuery);
 
-  const promises = keywords.map(async (keyword) => {
-    try {
-      console.log("Searching for keyword:", keyword);
-      const results = await env.AI.autorag('n8n-autorag').search({
-        query: keyword,
-        rewrite_query: false,
-        max_num_results: 3,
-        ranking_options: { score_threshold: 0.3 },
-      });
-      console.log('Search results for keyword ends:', keyword);
-      const data = (results as any).data || [];
-      return { keyword, data };
-    } catch (e) {
-      console.error("Error during search for keyword:", keyword, e);
-      return { keyword, error: String(e) };
-    }
-  });
-
-  const searchResults = await Promise.all(promises);
-  return { searchResults };
+  try {
+    const results = await env.AI.autorag('n8n-autorag').search({
+      query: combinedQuery,
+      rewrite_query: false, // Keep false for direct keyword search
+      max_num_results: 15, // Increased limit for broader search
+      ranking_options: { score_threshold: 0.25 }, // Slightly lower threshold
+    });
+    console.log('Combined search results received.');
+    const data = (results as any).data || [];
+    // Return in a structure compatible with downstream processing,
+    // even though it's a single result set now.
+    // We wrap it in an array to maintain the expected structure later.
+    return { searchResults: [{ query: combinedQuery, data }] };
+  } catch (e) {
+    console.error("Error during combined node search:", combinedQuery, e);
+    // Return an empty structure or re-throw depending on desired error handling
+    return { searchResults: [{ query: combinedQuery, error: String(e), data: [] }] };
+  }
 }
 
+
+// Updated to accept full node data again
 async function generateWorkflowWithAI(openai: OpenAI, prompt: string, nodes: any[], userPrompt: string): Promise<any> {
+  // Use full nodes in the system message
   const systemMsg = `${prompt}\n\nRelevant nodes from search: ${JSON.stringify(nodes)}`;
   const userMsg = userPrompt;
   const completion = await openai.chat.completions.create({
@@ -220,36 +223,56 @@ async function generateWorkflowHandler(c: Context<{ Bindings: Bindings }>) {
       return c.json({ error: 'Failed to search nodes' }, 500);
     }
 
-    // Flatten all data arrays from searchResults for workflow generation
-    const allNodesRaw = searchResults.flatMap((r: any) => Array.isArray(r.data) ? r.data : []);
+    // Process the single result set (searchResults is now an array with one element)
+    const combinedResultsData = searchResults[0]?.data || [];
+
+    // Fetch full node content for the results
     const allNodesFetched = await Promise.all(
-      allNodesRaw.map((item: any) => fetchFullNode(item, c.env))
+      combinedResultsData.map((item: any) => fetchFullNode(item, c.env))
     );
 
     // Uniqueness by file_id
-    const uniqueNodes = Array.from(new Set(allNodesFetched.map((node: any) => node.file_id)))
-      .map(id => allNodesFetched.find((node: any) => node.file_id === id));
+    const uniqueNodesFull = Array.from(new Set(allNodesFetched.map((node: any) => node.file_id)))
+      .map(id => allNodesFetched.find((node: any) => node.file_id === id))
+      .filter(node => node); // Filter out potential undefined values if find fails
 
-    // Map and parse content
-    const nodes = uniqueNodes.map((node: any) => {
+    // Map and parse full content again
+    const nodes = uniqueNodesFull.map((node: any) => {
       const { file_id, filename, content } = node;
-      let parsedContent: any = content;
+      let parsedContent: any = content; // Keep original content if parsing fails
       try {
-        parsedContent = JSON.parse(parsedContent);
+        // Ensure content exists and is a string before parsing
+        if (typeof content === 'string' && content.trim() !== '') {
+          parsedContent = JSON.parse(content);
+        } else if (typeof content === 'object' && content !== null) {
+           // If content is already an object (less likely now but handle defensively)
+           parsedContent = content;
+        }
       } catch (error) {
-        // leave as string if not JSON
-        console.error("Error processing node content:", error, filename);
+        console.error("Error parsing node content:", error, filename);
+        // Keep original string content if JSON parsing fails
+        parsedContent = content;
       }
+      // Return the structure expected by the original generateWorkflowWithAI (including file_id, filename)
       return { file_id, filename, content: parsedContent };
     });
 
+
     let workflow: unknown;
     try {
+      // Pass the full nodes array back to the generation function
       workflow = await generateWorkflowWithAI(openai, prompt, nodes, body.prompt);
     } catch (err: any) {
-      return c.json(err, 500);
+      // If generateWorkflowWithAI throws an object with error details
+      if (err && typeof err === 'object' && 'error' in err) {
+        return c.json(err, 500);
+      }
+      // Handle generic errors
+      const msg = err instanceof Error ? err.message : String(err);
+      return c.json({ error: 'Failed to generate workflow', details: msg }, 500);
     }
 
+    // Return the full nodes in the response again
     return c.json({ workflow, keywords, searchResults, nodes });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -263,12 +286,15 @@ async function searchHandler(c: Context<{ Bindings: Bindings }>) {
     return c.json({ error: 'Query parameter q is required' }, 400)
   }
   try {
-    // Reuse searchNodesForKeywords with the query as a single keyword
+    // Use the refactored searchNodesForKeywords. Pass the query as a single-element array.
     const { searchResults } = await searchNodesForKeywords([query], c.env);
-    // Flatten all data arrays from searchResults for combined output
-    const combinedRaw = searchResults.flatMap((r: any) => Array.isArray(r.data) ? r.data : []);
+
+    // Process the single result set
+    const combinedResultsData = searchResults[0]?.data || [];
+
+    // Fetch full node content for the results
     const combinedFetched = await Promise.all(
-      combinedRaw.map((item: any) => fetchFullNode(item, c.env))
+      combinedResultsData.map((item: any) => fetchFullNode(item, c.env))
     );
 
     // Uniqueness by file_id
