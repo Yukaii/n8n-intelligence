@@ -1,4 +1,5 @@
 {
+  "license": "AGPL-3.0",
   "name": "n8n-intelligence",
   "module": "worker/index.ts",
   "type": "module",
