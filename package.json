@@ -49,7 +49,6 @@
     "check": "vite build && tsc && wrangler deploy --dry-run",
     "deploy": "npm run build && wrangler deploy",
     "dev": "vite",
-    "lint": "eslint .",
     "preview": "npm run build && vite preview",
     "fmt": "biome format --write ./worker ./frontend"
   }
