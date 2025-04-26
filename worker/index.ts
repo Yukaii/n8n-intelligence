@@ -575,10 +575,10 @@ app.get("/quota", async (c) => {
     token: c.env.UPSTASH_REDIS_REST_TOKEN,
   });
   const quotaKey = `quota:${auth.userId}`;
-  let quota = await redis.get(quotaKey);
-  let remaining = quota === null ? QUOTA_LIMIT : Number(quota);
-  let ttl = await redis.ttl(quotaKey);
-  let reset = Date.now() + (ttl > 0 ? ttl * 1000 : QUOTA_WINDOW_SEC * 1000);
+  const quota = await redis.get(quotaKey);
+  const remaining = quota === null ? QUOTA_LIMIT : Number(quota);
+  const ttl = await redis.ttl(quotaKey);
+  const reset = Date.now() + (ttl > 0 ? ttl * 1000 : QUOTA_WINDOW_SEC * 1000);
   return c.json({ remaining, reset });
 });
 

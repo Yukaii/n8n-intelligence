@@ -21,12 +21,6 @@ export function Header() {
           </div>
         </Link>
         <nav className="flex items-center gap-6">
-          <Link
-            to="/"
-            className="text-sm font-medium text-gray-700 transition-colors hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400 [&.active]:text-blue-600 [&.active]:font-semibold dark:[&.active]:text-blue-400"
-          >
-            Home
-          </Link>
           <SignedIn>
             <Link
               to="/app"
