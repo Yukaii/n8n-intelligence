@@ -7,6 +7,9 @@ import { clerkMiddleware, getAuth } from "@hono/clerk-auth";
 
 import { Redis } from "@upstash/redis/cloudflare";
 import { prompt } from "./utils/prompt";
+import type {
+  INodeTypeDescription,
+} from "n8n-workflow";
 // import defaultNodes from "./data/defaultNodes.json";
 
 const QUOTA_LIMIT = 10;
@@ -122,10 +125,16 @@ Return the keywords according to the provided JSON schema.`;
 }
 
 // Refactored to perform a single search with combined keywords
+type NodeSearchResult = {
+  query: string;
+  data: Array<Partial<INodeTypeDescription> & { filename?: string; file_id?: string; content?: unknown }>;
+  error?: string;
+};
+
 async function searchNodesForKeywords(
   keywords: string[],
   env: Env,
-): Promise<{ searchResults: any[] }> {
+): Promise<{ searchResults: NodeSearchResult[] }> {
   const combinedQuery = keywords.join(" ");
   console.log("Searching with combined query:", combinedQuery);
 
@@ -137,7 +146,7 @@ async function searchNodesForKeywords(
       ranking_options: { score_threshold: 0.25 },
     });
     console.log("Combined search results received.");
-    const data = (results as any).data || [];
+    const data = (results as { data?: Array<Partial<INodeTypeDescription> & { filename?: string; file_id?: string; content?: unknown }> }).data || [];
     return { searchResults: [{ query: combinedQuery, data }] };
   } catch (e) {
     console.error("Error during combined node search:", combinedQuery, e);
@@ -147,13 +156,12 @@ async function searchNodesForKeywords(
   }
 }
 
-// Updated to accept full node data again
 async function generateWorkflowWithAI(
   openai: OpenAI,
   prompt: string,
-  nodes: any[],
+  nodes: Array<Partial<INodeTypeDescription> & { filename?: string; file_id?: string; content?: unknown }>,
   userPrompt: string,
-): Promise<any> {
+): Promise<unknown> {
   const systemMsg = `${prompt}\n\nRelevant nodes from search: ${JSON.stringify(nodes)}`;
   const userMsg = userPrompt;
   const completion = await openai.chat.completions.create({
@@ -171,13 +179,16 @@ async function generateWorkflowWithAI(
   let workflow: unknown;
   try {
     workflow = JSON.parse(content);
-  } catch (parseErr) {
+  } catch (parseErr: unknown) {
     throw { error: "Invalid JSON from AI", details: String(parseErr), content };
   }
   return workflow;
 }
 
-async function fetchFullNode(item: any, env: Env): Promise<any> {
+async function fetchFullNode(
+  item: Partial<INodeTypeDescription> & { filename?: string; file_id?: string; content?: unknown },
+  env: Env
+): Promise<Partial<INodeTypeDescription> & { filename?: string; file_id?: string; content?: unknown }> {
   if (item?.filename) {
     try {
       const obj = await env.N8N_NODES.get(item.filename);
@@ -319,7 +330,7 @@ async function generateWorkflowHandler(c: Context) {
           "Keywords extracted.",
           { keywords },
         );
-      } catch (err) {
+      } catch (err: unknown) {
         await writeError(
           "Failed to extract keywords",
           err instanceof Error ? err.message : String(err),
@@ -332,7 +343,7 @@ async function generateWorkflowHandler(c: Context) {
         "started",
         "Searching for relevant nodes...",
       );
-      let searchResults: any[];
+      let searchResults: NodeSearchResult[];
       try {
         const searchResult = await searchNodesForKeywords(keywords, c.env);
         searchResults = searchResult.searchResults;
@@ -343,7 +354,7 @@ async function generateWorkflowHandler(c: Context) {
           `Found ${rawResultCount} potential node matches.`,
           { rawCount: rawResultCount },
         );
-      } catch (err) {
+      } catch (err: unknown) {
         await writeError(
           "Failed to search nodes",
           err instanceof Error ? err.message : String(err),
@@ -357,12 +368,12 @@ async function generateWorkflowHandler(c: Context) {
         "Fetching full node details...",
       );
       const combinedResultsData = searchResults[0]?.data || [];
-      let allNodesFetched: any[];
+      let allNodesFetched: Array<Partial<INodeTypeDescription> & { filename?: string; file_id?: string; content?: unknown }>;
       try {
         allNodesFetched = await Promise.all(
-          combinedResultsData.map((item: any) => fetchFullNode(item, c.env)),
+          combinedResultsData.map((item: Partial<INodeTypeDescription> & { filename?: string; file_id?: string; content?: unknown }) => fetchFullNode(item, c.env)),
         );
-      } catch (err) {
+      } catch (err: unknown) {
         await writeError(
           "Failed during node fetching",
           err instanceof Error ? err.message : String(err),
@@ -372,11 +383,11 @@ async function generateWorkflowHandler(c: Context) {
 
       const uniqueNodesFull = Array.from(
         new Set(
-          allNodesFetched.map((node: any) => node?.file_id).filter((id) => id),
+          allNodesFetched.map((node) => node?.file_id).filter((id) => id),
         ),
       )
-        .map((id) => allNodesFetched.find((node: any) => node?.file_id === id))
-        .filter((node) => node);
+        .map((id) => allNodesFetched.find((node) => node?.file_id === id))
+        .filter((node): node is Partial<INodeTypeDescription> & { filename?: string; file_id?: string; content?: unknown } => !!node);
 
       await writeProgress(
         "fetch_nodes",
@@ -385,25 +396,27 @@ async function generateWorkflowHandler(c: Context) {
       );
 
       await writeProgress("parse_nodes", "started", "Parsing node content...");
-      const nodes = uniqueNodesFull.map((node: any) => {
-        const { file_id, filename, content } = node;
-        let parsedContent: any = content;
-        try {
-          if (typeof content === "string" && content.trim() !== "") {
-            parsedContent = JSON.parse(content);
-          } else if (typeof content === "object" && content !== null) {
+      const nodes = uniqueNodesFull.map(
+        (node): { file_id?: string; filename?: string; content: unknown } => {
+          const { file_id, filename, content } = node;
+          let parsedContent: unknown = content;
+          try {
+            if (typeof content === "string" && content.trim() !== "") {
+              parsedContent = JSON.parse(content);
+            } else if (typeof content === "object" && content !== null) {
+              parsedContent = content;
+            }
+          } catch (error) {
+            console.warn(
+              "Non-JSON content encountered for node:",
+              filename,
+              error,
+            );
             parsedContent = content;
           }
-        } catch (error) {
-          console.warn(
-            "Non-JSON content encountered for node:",
-            filename,
-            error,
-          );
-          parsedContent = content;
+          return { file_id, filename, content: parsedContent };
         }
-        return { file_id, filename, content: parsedContent };
-      });
+      );
       await writeProgress("parse_nodes", "completed", "Node content parsed.");
 
       await writeProgress(
@@ -424,14 +437,14 @@ async function generateWorkflowHandler(c: Context) {
           "completed",
           "Workflow generation complete.",
         );
-      } catch (err: any) {
+      } catch (err) {
         const errorDetails =
           err && typeof err === "object" && "details" in err
-            ? err.details
+            ? (err as { details?: unknown }).details
             : String(err);
         const errorMsg =
           err && typeof err === "object" && "error" in err
-            ? err.error
+            ? (err as { error?: string }).error
             : "Failed to generate workflow";
         await writeError(errorMsg, errorDetails);
         return;
