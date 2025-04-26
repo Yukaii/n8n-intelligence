@@ -4,13 +4,18 @@ import {
   SignedOut,
   SignInButton,
   UserButton,
+  useAuth,
 } from "@clerk/clerk-react";
+import { useMemo } from "react";
 
 export function Header() {
+  const { isSignedIn } = useAuth();
+  const homePath = useMemo(() => (isSignedIn ? "/home" : "/"), [isSignedIn]);
+
   return (
     <header className="sticky top-0 z-40 w-full border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link to="/">
+        <Link to={homePath}>
           <div className="flex items-center gap-2">
             <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
               n8n
