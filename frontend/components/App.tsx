@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import useSWR from "swr";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,6 +55,25 @@ function App() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [serverUrl, setServerUrl] = useState("");
   const [serverUrlInput, setServerUrlInput] = useState("");
+
+  // Quota with SWR
+  const quotaFetcher = async (url: string) => {
+    const res = await fetch(url, { credentials: "include" });
+    if (!res.ok) throw new Error(`Failed to fetch quota: ${res.statusText}`);
+    return res.json();
+  };
+  const quotaApiUrl = serverUrl
+    ? `${serverUrl.replace(/\/$/, "")}/quota`
+    : "/quota";
+  const {
+    data: quota,
+    error: quotaError,
+    isLoading: quotaLoading,
+  } = useSWR(
+    quotaApiUrl,
+    quotaFetcher,
+    { refreshInterval: 60000 }, // refresh every 60s
+  );
 
   const [isLoading, setIsLoading] = useState(false);
   const [progressMessage, setProgressMessage] = useState<string | null>(null);
@@ -120,6 +140,15 @@ function App() {
       });
 
       if (!response.ok) {
+        // Handle 403 Forbidden specifically
+        if (response.status === 403) {
+          setError(
+            "You do not have permission to access this resource (403 Forbidden).",
+          );
+          setIsLoading(false);
+          setProgressMessage(null);
+          return;
+        }
         // Try to parse error from body if possible, otherwise use status text
         let errorMsg = `Request failed: ${response.statusText}`;
         try {
@@ -327,11 +356,43 @@ function App() {
               />
             </div>
 
+            {/* Quota Info */}
+            <div className="mb-2">
+              {quotaLoading ? (
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  Loading quota...
+                </span>
+              ) : quotaError ? (
+                <span className="text-sm text-red-500 dark:text-red-400">
+                  {quotaError.message || String(quotaError)}
+                </span>
+              ) : quota ? (
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  Quota left:{" "}
+                  <span className="font-semibold">{quota.remaining}</span>
+                  {" | "}
+                  Resets:{" "}
+                  <span>
+                    {new Date(quota.reset).toLocaleString(undefined, {
+                      hour12: false,
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </span>
+              ) : null}
+            </div>
+
             {/* Generate Button and Progress Message */}
             <div className="flex items-center gap-4 flex-wrap">
               <Button
                 onClick={handleGenerate}
-                disabled={isLoading || !prompt.trim()}
+                disabled={
+                  isLoading || !prompt.trim() || (quota && quota.remaining <= 0)
+                }
                 size="lg"
                 className={`bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium transition-all duration-300 ${isLoading ? "opacity-90" : ""}`}
               >
@@ -382,7 +443,7 @@ function App() {
                 <div className="flex justify-between flex-wrap gap-2">
                   {stepLabels.map((step, index) => (
                     <div
-                      key={index}
+                      key={step.label}
                       className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-all duration-200
                         ${
                           index <= currentStepIndex
