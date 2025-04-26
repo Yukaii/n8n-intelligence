@@ -4,7 +4,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 
-const NODES_JSON = path.resolve(process.cwd(), "packages/backend/src/defaultNodes.json");
+const NODES_JSON = path.resolve(process.cwd(), "worker/data/defaultNodes.json");
 const OUT_DIR = path.resolve(process.cwd(), "nodes");
 
 const KEYS = [

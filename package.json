@@ -1,26 +1,46 @@
 {
   "name": "n8n-intelligence",
-  "module": "index.ts",
+  "module": "worker/index.ts",
   "type": "module",
   "private": true,
   "devDependencies": {
-    "@types/bun": "latest"
+    "@cloudflare/vite-plugin": "^0.1.15",
+    "@hono/vite-build": "^1.5.0",
+    "@types/bun": "^1.2.10",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^4.4.1",
+    "vite": "^6.3.2",
+    "vite-plugin-ssr-hot-reload": "^0.4.1",
+    "wrangler": "^4.12.0",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.1.4",
+    "@tailwindcss/vite": "^4.1.4"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
-  "workspaces": [
-    "packages/frontend",
-    "packages/backend"
-  ],
-  "scripts": {
-    "dev:all": "bun --filter '*' dev",
-    "crawl-nodes": "bun run scripts/crawl-nodes.ts",
-    "insert-vectorize": "bun run scripts/embed-and-vectorize.ts",
-    "query-vectorize": "bun run scripts/query-vectorize.ts",
-    "export-nodes": "bun run scripts/export-nodes.ts"
-  },
   "dependencies": {
-    "n8n-nodes-base": "^1.14.1"
+    "hono": "^4.7.7",
+    "openai": "^4.95.0",
+    "@radix-ui/react-dialog": "^1.1.10",
+    "@radix-ui/react-slot": "^1.2.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.488.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "swr": "^2.3.3",
+    "tailwind-merge": "^3.2.0",
+    "tw-animate-css": "^1.2.5"
+  },
+  "scripts": {
+    "build": "tsc -b && vite build",
+    "cf-typegen": "wrangler types",
+    "check": "tsc && vite build && wrangler deploy --dry-run",
+    "deploy": "npm run build && wrangler deploy",
+    "dev": "vite",
+    "lint": "eslint .",
+    "preview": "npm run build && vite preview"    
   }
 }
