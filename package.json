@@ -21,18 +21,18 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "hono": "^4.7.7",
-    "openai": "^4.95.0",
-    "@radix-ui/react-dialog": "^1.1.10",
+    "@radix-ui/react-dialog": "^1.1.11",
     "@radix-ui/react-slot": "^1.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "lucide-react": "^0.488.0",
+    "hono": "^4.7.7",
+    "lucide-react": "^0.503.0",
+    "openai": "^4.95.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "swr": "^2.3.3",
     "tailwind-merge": "^3.2.0",
-    "tw-animate-css": "^1.2.5"
+    "tw-animate-css": "^1.2.8"
   },
   "scripts": {
     "build": "tsc -b && vite build",
@@ -41,6 +41,6 @@
     "deploy": "npm run build && wrangler deploy",
     "dev": "vite",
     "lint": "eslint .",
-    "preview": "npm run build && vite preview"    
+    "preview": "npm run build && vite preview"
   }
 }
