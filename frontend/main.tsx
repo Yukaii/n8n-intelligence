@@ -5,6 +5,7 @@ import {
   createRouter,
   createHashHistory,
 } from "@tanstack/react-router";
+import { ClerkProvider } from '@clerk/clerk-react'
 
 import { routeTree } from "./routeTree.gen";
 
@@ -19,13 +20,21 @@ declare module "@tanstack/react-router" {
   }
 }
 
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+
+if (!PUBLISHABLE_KEY) {
+  throw new Error("Missing Publishable Key")
+}
+
 // biome-ignore lint/style/noNonNullAssertion: <explanation>
 const rootElement = document.getElementById("root")!;
 if (!rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement);
   root.render(
     <StrictMode>
-      <RouterProvider router={router} />
+      <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
+        <RouterProvider router={router} />
+      </ClerkProvider>
     </StrictMode>,
   );
 }
