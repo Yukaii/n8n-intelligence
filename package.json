@@ -39,9 +39,9 @@
     "tw-animate-css": "^1.2.8"
   },
   "scripts": {
-    "build": "tsc -b && vite build",
+    "build": "vite build && tsc -b",
     "cf-typegen": "wrangler types",
-    "check": "tsc && vite build && wrangler deploy --dry-run",
+    "check": "vite build && tsc && wrangler deploy --dry-run",
     "deploy": "npm run build && wrangler deploy",
     "dev": "vite",
     "lint": "eslint .",
