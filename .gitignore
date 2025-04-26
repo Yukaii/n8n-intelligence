@@ -21,3 +21,5 @@ vectors.ndjson
 nodes
 
 .dev.vars
+
+frontend/routeTree.gen.ts
