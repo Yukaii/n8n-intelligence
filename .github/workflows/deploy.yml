@@ -6,6 +6,8 @@ on:
     branches:
       - main # Trigger deployment only on pushes to the main branch
     paths:
+      - 'frontend/**'
+      - 'worker/**'
       - '.github/workflows/deploy.yml' # Or if the workflow file itself changes
 
 jobs:
