@@ -9,7 +9,13 @@ import type { INodeTypeDescription } from "n8n-workflow";
 export async function generateWorkflowWithAI(
   openai: OpenAI,
   prompt: string,
-  nodes: Array<Partial<INodeTypeDescription> & { filename?: string; file_id?: string; content?: unknown }>,
+  nodes: Array<
+    Partial<INodeTypeDescription> & {
+      filename?: string;
+      file_id?: string;
+      content?: unknown;
+    }
+  >,
   userPrompt: string,
 ): Promise<unknown> {
   const systemMsg = `${prompt}\n\nRelevant nodes from search: ${JSON.stringify(nodes)}`;
