@@ -120,6 +120,13 @@ function App() {
       });
 
       if (!response.ok) {
+        // Handle 403 Forbidden specifically
+        if (response.status === 403) {
+          setError("You do not have permission to access this resource (403 Forbidden).");
+          setIsLoading(false);
+          setProgressMessage(null);
+          return;
+        }
         // Try to parse error from body if possible, otherwise use status text
         let errorMsg = `Request failed: ${response.statusText}`;
         try {
@@ -382,7 +389,7 @@ function App() {
                 <div className="flex justify-between flex-wrap gap-2">
                   {stepLabels.map((step, index) => (
                     <div
-                      key={index}
+                      key={step.label}
                       className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-all duration-200
                         ${
                           index <= currentStepIndex

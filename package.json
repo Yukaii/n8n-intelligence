@@ -24,7 +24,9 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "@clerk/backend": "^1.30.0",
     "@clerk/clerk-react": "^5.30.0",
+    "@hono/clerk-auth": "^2.0.0",
     "@radix-ui/react-dialog": "^1.1.11",
     "@radix-ui/react-slot": "^1.2.0",
     "@tanstack/react-router": "^1.117.1",

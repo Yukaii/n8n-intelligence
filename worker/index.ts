@@ -3,6 +3,8 @@ import OpenAI from "openai";
 import type { Context } from "hono";
 import { env } from "hono/adapter";
 import { streamSSE } from "hono/streaming";
+import { clerkMiddleware, getAuth } from '@hono/clerk-auth'
+
 import { prompt } from "./utils/prompt";
 import defaultNodes from "./data/defaultNodes.json";
 
@@ -40,6 +42,8 @@ type Bindings = {
   AI: AiBinding;
   OPENAI_API_KEY: string;
   N8N_NODES: R2Bucket;
+  CLERK_SECRET_KEY: string
+  VITE_CLERK_PUBLISHABLE_KEY: string
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -57,15 +61,19 @@ async function fetchNodes(endpoint?: string, token?: string): Promise<any> {
 }
 
 async function getNodesHandler(c: Context<{ Bindings: Bindings }>) {
-  try {
-    const endpoint = c.req.query("endpoint");
-    const token = c.req.query("token");
-    const nodes = await fetchNodes(endpoint, token);
-    return c.json(nodes);
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return c.json({ error: msg }, 500);
-  }
+  return c.json({
+    message: "Not implemented yet",
+  })
+
+  // try {
+  //   const endpoint = c.req.query("endpoint");
+  //   const token = c.req.query("token");
+  //   const nodes = await fetchNodes(endpoint, token);
+  //   return c.json(nodes);
+  // } catch (err: unknown) {
+  //   const msg = err instanceof Error ? err.message : String(err);
+  //   return c.json({ error: msg }, 500);
+  // }
 }
 
 async function extractKeywordsFromPrompt(
@@ -225,7 +233,16 @@ async function fetchFullNode(item: any, env: Bindings): Promise<any> {
 }
 
 // Changed to use streamSSE for progress reporting
-app.post("/generate-workflow", async (c) => {
+async function generateWorkflowHandler (c: Context<{ Bindings: Bindings }>) {
+  const auth = getAuth(c)
+
+  if (!auth?.userId) {
+    c.status(403);
+    return c.json({
+      message: 'You are not logged in.',
+    })
+  }
+
   let streamClosed = false;
 
   return streamSSE(c, async (stream) => {
@@ -431,9 +448,11 @@ app.post("/generate-workflow", async (c) => {
       }
     }
   });
-});
+};
 
 async function searchHandler(c: Context<{ Bindings: Bindings }>) {
+  return c.status(403)
+  /*
   const query = c.req.query("q");
   if (!query) {
     return c.json({ error: "Query parameter q is required" }, 400);
@@ -485,8 +504,19 @@ async function searchHandler(c: Context<{ Bindings: Bindings }>) {
     console.error("Search Handler Error:", msg);
     return c.json({ error: msg }, 500);
   }
+
+  */
 }
 
+app.use('*', (c, next) => {
+  const { CLERK_SECRET_KEY, VITE_CLERK_PUBLISHABLE_KEY } = env<Bindings>(c);
+  return clerkMiddleware({
+    secretKey: CLERK_SECRET_KEY,
+    publishableKey: VITE_CLERK_PUBLISHABLE_KEY,
+  })(c, next);
+});
+
+app.post("/generate-workflow", generateWorkflowHandler);
 app.get("/nodes", getNodesHandler);
 // POST '/generate-workflow' is now defined above using streamSSE
 app.get("/search", searchHandler);
