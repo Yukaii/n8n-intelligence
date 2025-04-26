@@ -3,11 +3,9 @@ import OpenAI from 'openai';
 import type { Context } from 'hono';
 import { env } from 'hono/adapter';
 import { streamSSE } from 'hono/streaming';
-// @ts-ignore
 import { prompt } from './utils/prompt';
 import defaultNodes from './data/defaultNodes.json'
 
-// Define the type for the Cloudflare AI binding
 interface AutoragSearchOptions {
   query: string;
   rewrite_query?: boolean;
@@ -137,19 +135,15 @@ async function searchNodesForKeywords(keywords: string[], env: Bindings): Promis
   try {
     const results = await env.AI.autorag('n8n-autorag').search({
       query: combinedQuery,
-      rewrite_query: false, // Keep false for direct keyword search
-      max_num_results: 15, // Increased limit for broader search
-      ranking_options: { score_threshold: 0.25 }, // Slightly lower threshold
+      rewrite_query: false,
+      max_num_results: 15,
+      ranking_options: { score_threshold: 0.25 },
     });
     console.log('Combined search results received.');
     const data = (results as any).data || [];
-    // Return in a structure compatible with downstream processing,
-    // even though it's a single result set now.
-    // We wrap it in an array to maintain the expected structure later.
     return { searchResults: [{ query: combinedQuery, data }] };
   } catch (e) {
     console.error("Error during combined node search:", combinedQuery, e);
-    // Return an empty structure or re-throw depending on desired error handling
     return { searchResults: [{ query: combinedQuery, error: String(e), data: [] }] };
   }
 }
@@ -157,7 +151,6 @@ async function searchNodesForKeywords(keywords: string[], env: Bindings): Promis
 
 // Updated to accept full node data again
 async function generateWorkflowWithAI(openai: OpenAI, prompt: string, nodes: any[], userPrompt: string): Promise<any> {
-  // Use full nodes in the system message
   const systemMsg = `${prompt}\n\nRelevant nodes from search: ${JSON.stringify(nodes)}`;
   const userMsg = userPrompt;
   const completion = await openai.chat.completions.create({
@@ -165,7 +158,7 @@ async function generateWorkflowWithAI(openai: OpenAI, prompt: string, nodes: any
     messages: [{ role: 'system', content: systemMsg }, { role: 'user', content: userMsg }],
     temperature: 0,
     response_format: {
-      type: "json_object", // Use json_object type
+      type: "json_object",
     },
   });
   const content = completion.choices?.[0]?.message?.content || '';
@@ -201,10 +194,9 @@ async function fetchFullNode(item: any, env: Bindings): Promise<any> {
 
 // Changed to use streamSSE for progress reporting
 app.post('/generate-workflow', async (c) => {
-  let streamClosed = false; // Flag to prevent writing after close
+  let streamClosed = false;
 
   return streamSSE(c, async (stream) => {
-    // Ensure stream closes if client disconnects
     stream.onAbort(() => {
       console.log('Stream aborted by client.');
       streamClosed = true;
@@ -216,7 +208,7 @@ app.post('/generate-workflow', async (c) => {
       await stream.writeSSE({
         event: 'progress',
         data: JSON.stringify(payload),
-        id: String(Date.now()), // Add unique ID for potential retry logic
+        id: String(Date.now()),
       });
     };
 
@@ -237,7 +229,6 @@ app.post('/generate-workflow', async (c) => {
         data: JSON.stringify({ error: errorMsg, details }),
         id: String(Date.now()),
       });
-      // Close stream after error
       await stream.close();
       streamClosed = true;
     };
@@ -252,7 +243,6 @@ app.post('/generate-workflow', async (c) => {
 
       const openai = new OpenAI({ apiKey: env<{ OPENAI_API_KEY: string }>(c).OPENAI_API_KEY });
 
-      // 1. Keyword Extraction
       await writeProgress('extract_keywords', 'started', 'Extracting keywords...');
       let keywords: string[];
       try {
@@ -263,13 +253,11 @@ app.post('/generate-workflow', async (c) => {
         return;
       }
 
-      // 2. Node Search
       await writeProgress('search_nodes', 'started', 'Searching for relevant nodes...');
       let searchResults: any[];
       try {
         const searchResult = await searchNodesForKeywords(keywords, c.env);
         searchResults = searchResult.searchResults;
-        // We might want to report the number of raw results found
         const rawResultCount = searchResults[0]?.data?.length || 0;
         await writeProgress('search_nodes', 'completed', `Found ${rawResultCount} potential node matches.`, { rawCount: rawResultCount });
       } catch (err) {
@@ -277,7 +265,6 @@ app.post('/generate-workflow', async (c) => {
         return;
       }
 
-      // 3. Fetch Full Nodes & Deduplicate
       await writeProgress('fetch_nodes', 'started', 'Fetching full node details...');
       const combinedResultsData = searchResults[0]?.data || [];
       let allNodesFetched: any[];
@@ -290,13 +277,12 @@ app.post('/generate-workflow', async (c) => {
         return;
       }
 
-      const uniqueNodesFull = Array.from(new Set(allNodesFetched.map((node: any) => node?.file_id).filter(id => id))) // Ensure file_id exists
+      const uniqueNodesFull = Array.from(new Set(allNodesFetched.map((node: any) => node?.file_id).filter(id => id)))
         .map(id => allNodesFetched.find((node: any) => node?.file_id === id))
-        .filter(node => node); // Filter out potential undefined values
+        .filter(node => node);
 
       await writeProgress('fetch_nodes', 'completed', `Fetched and deduplicated ${uniqueNodesFull.length} unique nodes.`);
 
-      // 4. Parse Node Content
       await writeProgress('parse_nodes', 'started', 'Parsing node content...');
       const nodes = uniqueNodesFull.map((node: any) => {
         const { file_id, filename, content } = node;
@@ -309,15 +295,12 @@ app.post('/generate-workflow', async (c) => {
           }
         } catch (error) {
           console.warn("Non-JSON content encountered for node:", filename, error);
-          // Keep original string content if JSON parsing fails, AI might handle it
           parsedContent = content;
         }
         return { file_id, filename, content: parsedContent };
       });
       await writeProgress('parse_nodes', 'completed', 'Node content parsed.');
 
-
-      // 5. Generate Workflow
       await writeProgress('generate_workflow', 'started', 'Generating final workflow...');
       let workflow: unknown;
       try {
@@ -330,14 +313,11 @@ app.post('/generate-workflow', async (c) => {
         return;
       }
 
-      // 6. Send Final Result
-      await writeResult({ workflow, keywords, searchResults, nodes }); // Send full nodes back for potential debugging on client
+      await writeResult({ workflow, keywords, searchResults, nodes });
 
     } catch (err: unknown) {
-      // Catch any unexpected errors during the main process
       await writeError('An unexpected error occurred', err instanceof Error ? err.message : String(err));
     } finally {
-      // Ensure the stream is closed if not already closed by an error
       if (!streamClosed) {
         await stream.close();
         streamClosed = true;

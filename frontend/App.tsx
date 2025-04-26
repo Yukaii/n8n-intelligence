@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-// Removed useSWRMutation import
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -7,17 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Copy, Settings } from "lucide-react";
 
 type WorkflowResult = {
-  // workflow?: unknown; // Removed duplicate
-  workflow?: any; // More specific type if known, otherwise any
+  workflow?: any;
   keywords?: string[];
   searchResults?: any[];
-  nodes?: any[]; // This might be the full or trimmed nodes depending on backend
-  [key: string]: unknown; // Keep for flexibility
+  nodes?: any[];
+  [key: string]: unknown;
 };
 
-// Removed the old generateWorkflow function
-
-// Helper to parse SSE messages
 function parseSSEMessage(chunk: string): { event: string; data: any } | null {
   const lines = chunk.split('\n').filter(line => line.trim() !== '');
   let event = 'message'; // Default event type
@@ -51,7 +46,6 @@ function App() {
   const [serverUrl, setServerUrl] = useState("");
   const [serverUrlInput, setServerUrlInput] = useState("");
 
-  // New state for SSE handling
   const [isLoading, setIsLoading] = useState(false);
   const [progressMessage, setProgressMessage] = useState<string | null>(null);
   const [finalResult, setFinalResult] = useState<WorkflowResult | null>(null);
@@ -78,8 +72,6 @@ function App() {
       abortControllerRef.current?.abort();
     };
   }, []);
-
-  // Removed useSWRMutation hook
 
   const handleGenerate = async () => {
     // Abort previous request if any
