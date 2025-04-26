@@ -14,14 +14,14 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Copy, Settings } from "lucide-react";
 
 type WorkflowResult = {
-  workflow?: any;
+  workflow?: Record<string, unknown>;
   keywords?: string[];
-  searchResults?: any[];
-  nodes?: any[];
+  searchResults?: unknown[];
+  nodes?: unknown[];
   [key: string]: unknown;
 };
 
-function parseSSEMessage(chunk: string): { event: string; data: any } | null {
+function parseSSEMessage(chunk: string): { event: string; data: unknown } | null {
   const lines = chunk.split("\n").filter((line) => line.trim() !== "");
   let event = "message"; // Default event type
   let data = "";
@@ -194,10 +194,12 @@ function App() {
             const parsed = parseSSEMessage(message);
             if (parsed) {
               if (parsed.event === "progress") {
-                const { step, status, message } = parsed.data;
-                setProgressMessage(message || `Processing step: ${step}...`);
+                // Type guard for progress event
+                const data = parsed.data as { step?: string; status?: string; message?: string };
+                const { step, status, message: progressMsg } = data;
+                setProgressMessage(progressMsg || (step ? `Processing step: ${step}...` : "Processing..."));
                 // Update step index when a step is completed
-                if (status === "completed") {
+                if (step && status === "completed") {
                   const stepIndex = generationSteps.indexOf(step);
                   if (stepIndex > currentStepIndex) {
                     // Ensure we only move forward
@@ -205,13 +207,15 @@ function App() {
                   }
                 }
               } else if (parsed.event === "result") {
-                setFinalResult(parsed.data);
+                setFinalResult(parsed.data as WorkflowResult);
                 setProgressMessage("Workflow generated successfully!");
                 setCurrentStepIndex(generationSteps.length); // Mark all steps as done
                 setIsLoading(false); // Set loading false on final result
               } else if (parsed.event === "error") {
+                // Type guard for error event
+                const data = parsed.data as { error?: string };
                 setError(
-                  parsed.data.error ||
+                  data.error ||
                     "An unknown error occurred during generation.",
                 );
                 setProgressMessage(null); // Clear progress on error
@@ -337,7 +341,40 @@ function App() {
 
           {/* Prompt Input Section */}
           <div className="p-6 space-y-6">
+            {/* Example Prompts */}
             <div>
+              {/* Example prompts array */}
+              {(() => {
+                const examples = [
+                  "Create a workflow to send weekly reports from Google Sheets to Slack",
+                  "Monitor a Gmail inbox and save attachments to Dropbox",
+                  "Post a daily summary of new GitHub issues to Microsoft Teams",
+                  "Sync new Airtable records to a Notion database",
+                  "Send an SMS via Twilio when a Stripe payment is received",
+                  "Backup files from Google Drive to AWS S3 every Friday",
+                  "Alert me on Telegram when a website is down",
+                  "Extract data from incoming emails and add to Google Sheets"
+                ];
+                return (
+                  <div className="mb-4">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                      Example prompts:
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {examples.map((ex) => (
+                        <button
+                          key={ex}
+                          type="button"
+                          onClick={() => setPrompt(ex)}
+                          className="px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-200 text-xs hover:bg-blue-100 dark:hover:bg-blue-800 border border-blue-100 dark:border-blue-800 transition"
+                        >
+                          {ex}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
               <label
                 htmlFor="prompt"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
