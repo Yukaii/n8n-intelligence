@@ -177,4 +177,4 @@ Workflow-level settings, e.g. timezone, error workflow, execution options.
 
 **Use only these fields and structures for AI workflow generation.**
 For parameter validation and types, rely on the node’s type definition and basic TypeScript types.
-`
+`;

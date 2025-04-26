@@ -1,7 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Loader2, Copy, Settings } from "lucide-react";
 
@@ -14,14 +21,14 @@ type WorkflowResult = {
 };
 
 function parseSSEMessage(chunk: string): { event: string; data: any } | null {
-  const lines = chunk.split('\n').filter(line => line.trim() !== '');
-  let event = 'message'; // Default event type
-  let data = '';
+  const lines = chunk.split("\n").filter((line) => line.trim() !== "");
+  let event = "message"; // Default event type
+  let data = "";
 
   for (const line of lines) {
-    if (line.startsWith('event:')) {
+    if (line.startsWith("event:")) {
       event = line.substring(6).trim();
-    } else if (line.startsWith('data:')) {
+    } else if (line.startsWith("data:")) {
       data += line.substring(5).trim(); // Accumulate data if split across lines (though unlikely here)
     }
     // Ignore id: lines for now
@@ -32,12 +39,14 @@ function parseSSEMessage(chunk: string): { event: string; data: any } | null {
       return { event, data: JSON.parse(data) };
     } catch (e) {
       console.error("Failed to parse SSE data:", data, e);
-      return { event: 'error', data: { error: 'Failed to parse server event data' } }; // Treat parse failure as an error event
+      return {
+        event: "error",
+        data: { error: "Failed to parse server event data" },
+      }; // Treat parse failure as an error event
     }
   }
   return null;
 }
-
 
 function App() {
   const [prompt, setPrompt] = useState("");
@@ -55,11 +64,11 @@ function App() {
 
   // Define the steps in order
   const generationSteps = [
-    'extract_keywords',
-    'search_nodes',
-    'fetch_nodes',
-    'parse_nodes',
-    'generate_workflow'
+    "extract_keywords",
+    "search_nodes",
+    "fetch_nodes",
+    "parse_nodes",
+    "generate_workflow",
   ];
 
   useEffect(() => {
@@ -86,12 +95,17 @@ function App() {
     setCurrentStepIndex(-1); // Reset step index
     setCopied(false);
 
-    const apiUrl = serverUrl ? `${serverUrl.replace(/\/$/, "")}/generate-workflow` : "/generate-workflow";
+    const apiUrl = serverUrl
+      ? `${serverUrl.replace(/\/$/, "")}/generate-workflow`
+      : "/generate-workflow";
 
     try {
       const response = await fetch(apiUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Accept": "text/event-stream" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "text/event-stream",
+        },
         body: JSON.stringify({ prompt }),
         signal, // Pass the abort signal
       });
@@ -102,31 +116,38 @@ function App() {
         try {
           const errData = await response.json();
           errorMsg = errData.error || errorMsg;
-        } catch (e) { /* Ignore parsing error */ }
+        } catch (e) {
+          /* Ignore parsing error */
+        }
         throw new Error(errorMsg);
       }
 
-      if (!response.body || !response.headers.get('content-type')?.includes('text/event-stream')) {
-        throw new Error("Expected Server-Sent Events stream, but received different response.");
+      if (
+        !response.body ||
+        !response.headers.get("content-type")?.includes("text/event-stream")
+      ) {
+        throw new Error(
+          "Expected Server-Sent Events stream, but received different response.",
+        );
       }
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let buffer = '';
+      let buffer = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) {
           // Check if loading is still true, meaning no 'result' or 'error' event was received before stream ended
           if (isLoading) {
-             setProgressMessage("Stream ended without final result.");
-             // Consider setting an error or leaving as is depending on desired UX
+            setProgressMessage("Stream ended without final result.");
+            // Consider setting an error or leaving as is depending on desired UX
           }
           break;
         }
 
         buffer += decoder.decode(value, { stream: true });
-        const messages = buffer.split('\n\n'); // SSE messages are separated by double newlines
+        const messages = buffer.split("\n\n"); // SSE messages are separated by double newlines
 
         // Process all complete messages except the last partial one
         for (let i = 0; i < messages.length - 1; i++) {
@@ -134,23 +155,27 @@ function App() {
           if (message.trim()) {
             const parsed = parseSSEMessage(message);
             if (parsed) {
-              if (parsed.event === 'progress') {
+              if (parsed.event === "progress") {
                 const { step, status, message } = parsed.data;
                 setProgressMessage(message || `Processing step: ${step}...`);
                 // Update step index when a step is completed
-                if (status === 'completed') {
+                if (status === "completed") {
                   const stepIndex = generationSteps.indexOf(step);
-                  if (stepIndex > currentStepIndex) { // Ensure we only move forward
+                  if (stepIndex > currentStepIndex) {
+                    // Ensure we only move forward
                     setCurrentStepIndex(stepIndex);
                   }
                 }
-              } else if (parsed.event === 'result') {
+              } else if (parsed.event === "result") {
                 setFinalResult(parsed.data);
                 setProgressMessage("Workflow generated successfully!");
                 setCurrentStepIndex(generationSteps.length); // Mark all steps as done
                 setIsLoading(false); // Set loading false on final result
-              } else if (parsed.event === 'error') {
-                setError(parsed.data.error || 'An unknown error occurred during generation.');
+              } else if (parsed.event === "error") {
+                setError(
+                  parsed.data.error ||
+                    "An unknown error occurred during generation.",
+                );
                 setProgressMessage(null); // Clear progress on error
                 setCurrentStepIndex(-1); // Reset steps on error
                 setIsLoading(false); // Set loading false on error
@@ -163,29 +188,32 @@ function App() {
         // Keep the last partial message in the buffer
         buffer = messages[messages.length - 1];
       }
-
     } catch (err: any) {
-      if (err.name === 'AbortError') {
-        console.log('Fetch aborted');
-        setError('Request cancelled.');
+      if (err.name === "AbortError") {
+        console.log("Fetch aborted");
+        setError("Request cancelled.");
       } else {
-        setError(err instanceof Error ? err.message : "An unknown error occurred");
+        setError(
+          err instanceof Error ? err.message : "An unknown error occurred",
+        );
       }
       setProgressMessage(null);
     } finally {
       // Ensure loading is set to false if it hasn't been already (e.g., stream ended abruptly)
-      if (isLoading) { // Check isLoading again in case it was set false by 'result' or 'error'
-         setIsLoading(false);
+      if (isLoading) {
+        // Check isLoading again in case it was set false by 'result' or 'error'
+        setIsLoading(false);
       }
       abortControllerRef.current = null; // Clear the ref
     }
   };
 
-
   const handleCopy = async () => {
     // Use finalResult now
     if (finalResult && finalResult.workflow) {
-      await navigator.clipboard.writeText(JSON.stringify(finalResult.workflow, null, 2));
+      await navigator.clipboard.writeText(
+        JSON.stringify(finalResult.workflow, null, 2),
+      );
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     }
@@ -214,7 +242,7 @@ function App() {
             <div className="space-y-2 py-2">
               <Input
                 value={serverUrlInput}
-                onChange={e => setServerUrlInput(e.target.value)}
+                onChange={(e) => setServerUrlInput(e.target.value)}
                 placeholder="e.g. https://api.example.com"
                 className="w-full"
               />
@@ -230,7 +258,9 @@ function App() {
       </div>
       <Textarea
         value={prompt}
-        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+          setPrompt(e.target.value)
+        }
         placeholder="Describe your workflow..."
         rows={6}
         className="mb-2"
@@ -249,7 +279,9 @@ function App() {
         </Button>
         {/* Display progress message */}
         {isLoading && progressMessage && (
-          <span className="text-muted-foreground text-sm">{progressMessage}</span>
+          <span className="text-muted-foreground text-sm">
+            {progressMessage}
+          </span>
         )}
       </div>
 
@@ -258,10 +290,12 @@ function App() {
         <div className="w-full bg-muted rounded-full h-2.5 dark:bg-gray-700 my-3">
           <div
             className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-out"
-            style={{ width: `${((currentStepIndex + 1) / generationSteps.length) * 100}%` }}
-           ></div>
-           {/* Optional: Add step labels below */}
-           {/* <div className="flex justify-between text-xs text-muted-foreground mt-1">
+            style={{
+              width: `${((currentStepIndex + 1) / generationSteps.length) * 100}%`,
+            }}
+          ></div>
+          {/* Optional: Add step labels below */}
+          {/* <div className="flex justify-between text-xs text-muted-foreground mt-1">
              {generationSteps.map((step, index) => (
                <span key={step} className={index <= currentStepIndex ? 'font-semibold' : ''}>
                  {step.replace('_', ' ')}

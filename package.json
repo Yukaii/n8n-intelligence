@@ -4,18 +4,20 @@
   "type": "module",
   "private": true,
   "devDependencies": {
+    "@biomejs/biome": "1.9.4",
     "@cloudflare/vite-plugin": "^0.1.21",
     "@hono/vite-build": "^1.6.0",
+    "@tailwindcss/vite": "^4.1.4",
+    "@tanstack/router-plugin": "^1.117.2",
     "@types/bun": "^1.2.10",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",
-    "vite": "^6.3.3",
-    "vite-plugin-ssr-hot-reload": "^0.4.2",
-    "wrangler": "^4.13.2",
     "postcss": "^8.5.3",
     "tailwindcss": "^4.1.4",
-    "@tailwindcss/vite": "^4.1.4"
+    "vite": "^6.3.3",
+    "vite-plugin-ssr-hot-reload": "^0.4.2",
+    "wrangler": "^4.13.2"
   },
   "peerDependencies": {
     "typescript": "^5.8.3"
@@ -23,6 +25,8 @@
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.11",
     "@radix-ui/react-slot": "^1.2.0",
+    "@tanstack/react-router": "^1.117.1",
+    "@tanstack/react-router-devtools": "^1.117.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "hono": "^4.7.7",
@@ -41,6 +45,7 @@
     "deploy": "npm run build && wrangler deploy",
     "dev": "vite",
     "lint": "eslint .",
-    "preview": "npm run build && vite preview"
+    "preview": "npm run build && vite preview",
+    "fmt": "biome format --write ./worker ./frontend"
   }
 }
