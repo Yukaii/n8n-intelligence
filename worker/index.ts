@@ -189,9 +189,11 @@ async function fetchFullNode(
   item: Partial<INodeTypeDescription> & { filename?: string; file_id?: string; content?: unknown },
   env: Env
 ): Promise<Partial<INodeTypeDescription> & { filename?: string; file_id?: string; content?: unknown }> {
-  if (item?.filename) {
+  const { filename } = item;
+  if (typeof filename === "string" && filename.length > 0) {
+    const safeFilename: string = filename;
     try {
-      const obj = await env.N8N_NODES.get(item.filename);
+      const obj = await env.N8N_NODES.get(safeFilename);
       if (obj) {
         const content = await obj.text();
         if (!content) {
@@ -199,11 +201,12 @@ async function fetchFullNode(
         }
         return {
           ...item,
+          filename: safeFilename,
           content,
         };
       }
     } catch (err) {
-      console.error("Error fetching full node from R2 for", item.filename, err);
+      console.error("Error fetching full node from R2 for", safeFilename, err);
     }
   }
   return item;
@@ -264,14 +267,31 @@ async function generateWorkflowHandler(c: Context) {
       streamClosed = true;
     });
 
+    type ProgressPayload = {
+      step: string;
+      status: string;
+      message?: string;
+      data?: unknown;
+    };
+    type ResultPayload = {
+      workflow: unknown;
+      keywords: string[];
+      searchResults: NodeSearchResult[];
+      nodes: Array<{ file_id?: string; filename?: string; content: unknown }>;
+    };
+    type ErrorPayload = {
+      error: string;
+      details?: unknown;
+    };
+
     const writeProgress = async (
       step: string,
       status: string,
       message?: string,
-      data?: any,
+      data?: unknown,
     ) => {
       if (streamClosed) return;
-      const payload = { step, status, message, data };
+      const payload: ProgressPayload = { step, status, message, data };
       await stream.writeSSE({
         event: "progress",
         data: JSON.stringify(payload),
@@ -279,7 +299,7 @@ async function generateWorkflowHandler(c: Context) {
       });
     };
 
-    const writeResult = async (resultData: any) => {
+    const writeResult = async (resultData: ResultPayload) => {
       if (streamClosed) return;
       await stream.writeSSE({
         event: "result",
@@ -288,12 +308,13 @@ async function generateWorkflowHandler(c: Context) {
       });
     };
 
-    const writeError = async (errorMsg: string, details?: any) => {
+    const writeError = async (errorMsg: string, details?: unknown) => {
       if (streamClosed) return;
+      const payload: ErrorPayload = { error: errorMsg, details };
       console.error("Workflow Generation Error:", errorMsg, details);
       await stream.writeSSE({
         event: "error",
-        data: JSON.stringify({ error: errorMsg, details }),
+        data: JSON.stringify(payload),
         id: String(Date.now()),
       });
       await stream.close();
@@ -446,7 +467,7 @@ async function generateWorkflowHandler(c: Context) {
           err && typeof err === "object" && "error" in err
             ? (err as { error?: string }).error
             : "Failed to generate workflow";
-        await writeError(errorMsg, errorDetails);
+        await writeError(errorMsg ?? "", errorDetails);
         return;
       }
 
