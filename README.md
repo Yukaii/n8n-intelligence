@@ -18,7 +18,6 @@ A workflow AI generator powered by modern web technologies.
 | check          | Build, type-check, and dry-run deploy       |
 | deploy         | Build and deploy with Wrangler              |
 | dev            | Start Vite development server               |
-| lint           | Lint code with ESLint                       |
 | preview        | Preview production build                    |
 | fmt            | Format code with Biome                      |
 
@@ -36,7 +35,7 @@ A workflow AI generator powered by modern web technologies.
 
 - Vite, @vitejs/plugin-react, @cloudflare/vite-plugin, @hono/vite-build, @tailwindcss/vite
 - TypeScript, @types/react, @types/react-dom, @types/bun
-- Wrangler, Biome, ESLint
+- Wrangler, Biome
 
 ## License
 

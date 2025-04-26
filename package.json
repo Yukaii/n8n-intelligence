@@ -54,6 +54,8 @@
     "deploy": "npm run build && wrangler deploy",
     "dev": "vite",
     "preview": "npm run build && vite preview",
-    "fmt": "biome format --write ./worker ./frontend"
+    "fmt": "biome format --write ./worker ./frontend",
+    "lint": "biome lint ./worker ./frontend",
+    "lint:fix": "biome lint ./worker ./frontend --write  --unsafe"
   }
 }

@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import OpenAI from "openai";
-import type { Context } from "hono";
+import type { Context, Next } from "hono";
 import { env } from "hono/adapter";
 import { streamSSE } from "hono/streaming";
 import { clerkMiddleware, getAuth } from "@hono/clerk-auth";
@@ -12,47 +12,7 @@ import { prompt } from "./utils/prompt";
 const QUOTA_LIMIT = 10;
 const QUOTA_WINDOW_SEC = 86400; // 24 hours
 
-interface AutoragSearchOptions {
-  query: string;
-  rewrite_query?: boolean;
-  max_num_results?: number;
-  ranking_options?: {
-    score_threshold?: number;
-  };
-}
-
-interface AutoragNamespace {
-  search(options: AutoragSearchOptions): Promise<object>;
-}
-
-interface AutoragCallable {
-  (namespace?: string): AutoragNamespace;
-}
-
-interface AiBinding {
-  autorag: AutoragCallable;
-}
-
-interface R2Bucket {
-  get(key: string): Promise<R2ObjectBody | null>;
-}
-interface R2ObjectBody {
-  body: ReadableStream<any> | null;
-  text(): Promise<string>;
-  json(): Promise<any>;
-}
-
-type Bindings = {
-  AI: AiBinding;
-  OPENAI_API_KEY: string;
-  N8N_NODES: R2Bucket;
-  CLERK_SECRET_KEY: string;
-  VITE_CLERK_PUBLISHABLE_KEY: string;
-  UPSTASH_REDIS_REST_URL: string;
-  UPSTASH_REDIS_REST_TOKEN: string;
-};
-
-const app = new Hono<{ Bindings: Bindings }>();
+const app = new Hono();
 
 // async function fetchNodes(endpoint?: string, token?: string): Promise<any> {
 //   if (endpoint && token) {
@@ -66,7 +26,7 @@ const app = new Hono<{ Bindings: Bindings }>();
 //   return defaultNodes;
 // }
 
-async function getNodesHandler(c: Context<{ Bindings: Bindings }>) {
+async function getNodesHandler(c: Context) {
   return c.json({
     message: "Not implemented yet",
   });
@@ -164,7 +124,7 @@ Return the keywords according to the provided JSON schema.`;
 // Refactored to perform a single search with combined keywords
 async function searchNodesForKeywords(
   keywords: string[],
-  env: Bindings,
+  env: Env,
 ): Promise<{ searchResults: any[] }> {
   const combinedQuery = keywords.join(" ");
   console.log("Searching with combined query:", combinedQuery);
@@ -217,8 +177,8 @@ async function generateWorkflowWithAI(
   return workflow;
 }
 
-async function fetchFullNode(item: any, env: Bindings): Promise<any> {
-  if (item && item.filename) {
+async function fetchFullNode(item: any, env: Env): Promise<any> {
+  if (item?.filename) {
     try {
       const obj = await env.N8N_NODES.get(item.filename);
       if (obj) {
@@ -239,7 +199,7 @@ async function fetchFullNode(item: any, env: Bindings): Promise<any> {
 }
 
 // Changed to use streamSSE for progress reporting
-async function generateWorkflowHandler(c: Context<{ Bindings: Bindings }>) {
+async function generateWorkflowHandler(c: Context) {
   const auth = getAuth(c);
 
   if (!auth?.userId) {
@@ -492,7 +452,7 @@ async function generateWorkflowHandler(c: Context<{ Bindings: Bindings }>) {
   });
 }
 
-async function searchHandler(c: Context<{ Bindings: Bindings }>) {
+async function searchHandler(c: Context) {
   return c.status(403);
   /*
   const query = c.req.query("q");
@@ -550,7 +510,7 @@ async function searchHandler(c: Context<{ Bindings: Bindings }>) {
   */
 }
 
-app.use("*", (c, next) => {
+app.use("*", (c: Context, next: Next) => {
   return clerkMiddleware({
     secretKey: c.env.CLERK_SECRET_KEY,
     publishableKey: c.env.VITE_CLERK_PUBLISHABLE_KEY,
@@ -563,7 +523,7 @@ app.get("/nodes", getNodesHandler);
 app.get("/search", searchHandler);
 
 // --- Quota info endpoint ---
-app.get("/quota", async (c) => {
+app.get("/quota", async (c: Context) => {
   const auth = getAuth(c);
   if (!auth?.userId) {
     c.status(403);
