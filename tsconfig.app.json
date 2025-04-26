@@ -20,7 +20,17 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+    "paths": {
+      "@/*": ["./frontend/*"],
+      "@components/*": ["./frontend/components/*"],
+      "@hooks/*": ["./frontend/hooks/*"],
+      "@utils/*": ["./frontend/utils/*"],
+      "@styles/*": ["./frontend/styles/*"],
+      "@assets/*": ["./frontend/assets/*"],
+      "@types/*": ["./frontend/types/*"],
+      "@lib/*": ["./frontend/lib/*"]
+    }
   },
-  "include": ["frontend"]
+  "include": ["frontend"],
 }

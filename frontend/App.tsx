@@ -131,7 +131,7 @@ function App() {
         <div className="mt-4">
           <div className="flex items-center mb-1 gap-2">
             <h2 className="font-semibold">Result</h2>
-            {result.workflow && (
+            {result.workflow ? (
               <Button
                 size="sm"
                 className="px-2 py-1 h-7"
@@ -141,7 +141,7 @@ function App() {
                 <Copy className="w-4 h-4 mr-1" />
                 {copied ? "Copied!" : "Copy"}
               </Button>
-            )}
+            ) : null}
           </div>
           <pre className="bg-muted p-3 rounded text-xs overflow-x-auto">
             {JSON.stringify(result?.workflow || {}, null, 2)}
