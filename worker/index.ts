@@ -1,9 +1,10 @@
-import { Hono } from 'hono'
-import OpenAI from 'openai'
-import type { Context } from 'hono'
-import { env } from 'hono/adapter'
+import { Hono } from 'hono';
+import OpenAI from 'openai';
+import type { Context } from 'hono';
+import { env } from 'hono/adapter';
+import { streamSSE } from 'hono/streaming';
 // @ts-ignore
-import { prompt } from './utils/prompt'
+import { prompt } from './utils/prompt';
 import defaultNodes from './data/defaultNodes.json'
 
 // Define the type for the Cloudflare AI binding
@@ -198,87 +199,152 @@ async function fetchFullNode(item: any, env: Bindings): Promise<any> {
   return item;
 }
 
-async function generateWorkflowHandler(c: Context<{ Bindings: Bindings }>) {
-  const body = await c.req.json<{ prompt?: string; endpoint?: string; token?: string }>()
-  if (!body.prompt) {
-    return c.json({ error: 'Prompt is required' }, 400)
-  }
+// Changed to use streamSSE for progress reporting
+app.post('/generate-workflow', async (c) => {
+  let streamClosed = false; // Flag to prevent writing after close
 
-  try {
-    const openai = new OpenAI({ apiKey: env<{ OPENAI_API_KEY: string }>(c).OPENAI_API_KEY });
-    let keywords: string[];
-    try {
-      keywords = await extractKeywordsFromPrompt(openai, body.prompt);
-    } catch (err) {
-      console.error("Keyword extraction error:", err);
-      return c.json({ error: 'Failed to extract keywords' }, 500);
-    }
-
-    let searchResults: any[];
-    try {
-      const searchResult = await searchNodesForKeywords(keywords, c.env);
-      searchResults = searchResult.searchResults;
-    } catch (err) {
-      console.error("Node search error:", err);
-      return c.json({ error: 'Failed to search nodes' }, 500);
-    }
-
-    // Process the single result set (searchResults is now an array with one element)
-    const combinedResultsData = searchResults[0]?.data || [];
-
-    // Fetch full node content for the results
-    const allNodesFetched = await Promise.all(
-      combinedResultsData.map((item: any) => fetchFullNode(item, c.env))
-    );
-
-    // Uniqueness by file_id
-    const uniqueNodesFull = Array.from(new Set(allNodesFetched.map((node: any) => node.file_id)))
-      .map(id => allNodesFetched.find((node: any) => node.file_id === id))
-      .filter(node => node); // Filter out potential undefined values if find fails
-
-    // Map and parse full content again
-    const nodes = uniqueNodesFull.map((node: any) => {
-      const { file_id, filename, content } = node;
-      let parsedContent: any = content; // Keep original content if parsing fails
-      try {
-        // Ensure content exists and is a string before parsing
-        if (typeof content === 'string' && content.trim() !== '') {
-          parsedContent = JSON.parse(content);
-        } else if (typeof content === 'object' && content !== null) {
-           // If content is already an object (less likely now but handle defensively)
-           parsedContent = content;
-        }
-      } catch (error) {
-        console.error("Error parsing node content:", error, filename);
-        // Keep original string content if JSON parsing fails
-        parsedContent = content;
-      }
-      // Return the structure expected by the original generateWorkflowWithAI (including file_id, filename)
-      return { file_id, filename, content: parsedContent };
+  return streamSSE(c, async (stream) => {
+    // Ensure stream closes if client disconnects
+    stream.onAbort(() => {
+      console.log('Stream aborted by client.');
+      streamClosed = true;
     });
 
+    const writeProgress = async (step: string, status: string, message?: string, data?: any) => {
+      if (streamClosed) return;
+      const payload = { step, status, message, data };
+      await stream.writeSSE({
+        event: 'progress',
+        data: JSON.stringify(payload),
+        id: String(Date.now()), // Add unique ID for potential retry logic
+      });
+    };
 
-    let workflow: unknown;
+    const writeResult = async (resultData: any) => {
+      if (streamClosed) return;
+      await stream.writeSSE({
+        event: 'result',
+        data: JSON.stringify(resultData),
+        id: String(Date.now()),
+      });
+    };
+
+    const writeError = async (errorMsg: string, details?: any) => {
+      if (streamClosed) return;
+      console.error("Workflow Generation Error:", errorMsg, details);
+      await stream.writeSSE({
+        event: 'error',
+        data: JSON.stringify({ error: errorMsg, details }),
+        id: String(Date.now()),
+      });
+      // Close stream after error
+      await stream.close();
+      streamClosed = true;
+    };
+
     try {
-      // Pass the full nodes array back to the generation function
-      workflow = await generateWorkflowWithAI(openai, prompt, nodes, body.prompt);
-    } catch (err: any) {
-      // If generateWorkflowWithAI throws an object with error details
-      if (err && typeof err === 'object' && 'error' in err) {
-        return c.json(err, 500);
+      const body = await c.req.json<{ prompt?: string; endpoint?: string; token?: string }>();
+      if (!body.prompt) {
+        await writeError('Prompt is required');
+        return;
       }
-      // Handle generic errors
-      const msg = err instanceof Error ? err.message : String(err);
-      return c.json({ error: 'Failed to generate workflow', details: msg }, 500);
-    }
+      const userPrompt = body.prompt;
 
-    // Return the full nodes in the response again
-    return c.json({ workflow, keywords, searchResults, nodes });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err)
-    return c.json({ error: msg }, 500)
-  }
-}
+      const openai = new OpenAI({ apiKey: env<{ OPENAI_API_KEY: string }>(c).OPENAI_API_KEY });
+
+      // 1. Keyword Extraction
+      await writeProgress('extract_keywords', 'started', 'Extracting keywords...');
+      let keywords: string[];
+      try {
+        keywords = await extractKeywordsFromPrompt(openai, userPrompt);
+        await writeProgress('extract_keywords', 'completed', 'Keywords extracted.', { keywords });
+      } catch (err) {
+        await writeError('Failed to extract keywords', err instanceof Error ? err.message : String(err));
+        return;
+      }
+
+      // 2. Node Search
+      await writeProgress('search_nodes', 'started', 'Searching for relevant nodes...');
+      let searchResults: any[];
+      try {
+        const searchResult = await searchNodesForKeywords(keywords, c.env);
+        searchResults = searchResult.searchResults;
+        // We might want to report the number of raw results found
+        const rawResultCount = searchResults[0]?.data?.length || 0;
+        await writeProgress('search_nodes', 'completed', `Found ${rawResultCount} potential node matches.`, { rawCount: rawResultCount });
+      } catch (err) {
+        await writeError('Failed to search nodes', err instanceof Error ? err.message : String(err));
+        return;
+      }
+
+      // 3. Fetch Full Nodes & Deduplicate
+      await writeProgress('fetch_nodes', 'started', 'Fetching full node details...');
+      const combinedResultsData = searchResults[0]?.data || [];
+      let allNodesFetched: any[];
+      try {
+        allNodesFetched = await Promise.all(
+          combinedResultsData.map((item: any) => fetchFullNode(item, c.env))
+        );
+      } catch (err) {
+        await writeError('Failed during node fetching', err instanceof Error ? err.message : String(err));
+        return;
+      }
+
+      const uniqueNodesFull = Array.from(new Set(allNodesFetched.map((node: any) => node?.file_id).filter(id => id))) // Ensure file_id exists
+        .map(id => allNodesFetched.find((node: any) => node?.file_id === id))
+        .filter(node => node); // Filter out potential undefined values
+
+      await writeProgress('fetch_nodes', 'completed', `Fetched and deduplicated ${uniqueNodesFull.length} unique nodes.`);
+
+      // 4. Parse Node Content
+      await writeProgress('parse_nodes', 'started', 'Parsing node content...');
+      const nodes = uniqueNodesFull.map((node: any) => {
+        const { file_id, filename, content } = node;
+        let parsedContent: any = content;
+        try {
+          if (typeof content === 'string' && content.trim() !== '') {
+            parsedContent = JSON.parse(content);
+          } else if (typeof content === 'object' && content !== null) {
+            parsedContent = content;
+          }
+        } catch (error) {
+          console.warn("Non-JSON content encountered for node:", filename, error);
+          // Keep original string content if JSON parsing fails, AI might handle it
+          parsedContent = content;
+        }
+        return { file_id, filename, content: parsedContent };
+      });
+      await writeProgress('parse_nodes', 'completed', 'Node content parsed.');
+
+
+      // 5. Generate Workflow
+      await writeProgress('generate_workflow', 'started', 'Generating final workflow...');
+      let workflow: unknown;
+      try {
+        workflow = await generateWorkflowWithAI(openai, prompt, nodes, userPrompt);
+        await writeProgress('generate_workflow', 'completed', 'Workflow generation complete.');
+      } catch (err: any) {
+        const errorDetails = (err && typeof err === 'object' && 'details' in err) ? err.details : String(err);
+        const errorMsg = (err && typeof err === 'object' && 'error' in err) ? err.error : 'Failed to generate workflow';
+        await writeError(errorMsg, errorDetails);
+        return;
+      }
+
+      // 6. Send Final Result
+      await writeResult({ workflow, keywords, searchResults, nodes }); // Send full nodes back for potential debugging on client
+
+    } catch (err: unknown) {
+      // Catch any unexpected errors during the main process
+      await writeError('An unexpected error occurred', err instanceof Error ? err.message : String(err));
+    } finally {
+      // Ensure the stream is closed if not already closed by an error
+      if (!streamClosed) {
+        await stream.close();
+        streamClosed = true;
+      }
+    }
+  });
+});
 
 async function searchHandler(c: Context<{ Bindings: Bindings }>) {
   const query = c.req.query('q')
@@ -330,8 +396,8 @@ async function searchHandler(c: Context<{ Bindings: Bindings }>) {
   }
 }
 
-app.get('/nodes', getNodesHandler)
-app.post('/generate-workflow', generateWorkflowHandler)
-app.get('/search', searchHandler)
+app.get('/nodes', getNodesHandler);
+// POST '/generate-workflow' is now defined above using streamSSE
+app.get('/search', searchHandler);
 
-export default app
+export default app;
