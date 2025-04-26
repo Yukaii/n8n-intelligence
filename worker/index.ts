@@ -551,10 +551,9 @@ async function searchHandler(c: Context<{ Bindings: Bindings }>) {
 }
 
 app.use("*", (c, next) => {
-  const { CLERK_SECRET_KEY, VITE_CLERK_PUBLISHABLE_KEY } = env<Bindings>(c);
   return clerkMiddleware({
-    secretKey: CLERK_SECRET_KEY,
-    publishableKey: VITE_CLERK_PUBLISHABLE_KEY,
+    secretKey: c.env.CLERK_SECRET_KEY,
+    publishableKey: c.env.VITE_CLERK_PUBLISHABLE_KEY,
   })(c, next);
 });
 
