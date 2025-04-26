@@ -11,15 +11,18 @@ A workflow AI generator powered by modern web technologies.
 
 ## Scripts
 
-| Script         | Description                                 |
-| -------------- | ------------------------------------------- |
-| build          | Build the project (`vite build && tsc -b`)  |
-| cf-typegen     | Generate Cloudflare types (`wrangler types`) |
-| check          | Build, type-check, and dry-run deploy       |
-| deploy         | Build and deploy with Wrangler              |
-| dev            | Start Vite development server               |
-| preview        | Preview production build                    |
-| fmt            | Format code with Biome                      |
+| Script      | Description                                                      |
+| ----------- | ---------------------------------------------------------------- |
+| build       | Build the project (`vite build && tsc -b`)                       |
+| cf-typegen  | Generate Cloudflare types (`wrangler types`)                     |
+| check       | Build, type-check, and dry-run deploy (`vite build && tsc && wrangler deploy --dry-run`) |
+| deploy      | Build and deploy with Wrangler (`npm run build && wrangler deploy`) |
+| dev         | Start Vite development server (`vite`)                           |
+| preview     | Preview production build (`npm run build && vite preview`)       |
+| fmt         | Format code with Biome (`biome format --write ./worker ./frontend`) |
+| lint        | Lint code with Biome (`biome lint ./worker ./frontend`)          |
+| lint:fix    | Lint and fix code with Biome (`biome lint ./worker ./frontend --write  --unsafe`) |
+
 
 ## Dependencies
 
