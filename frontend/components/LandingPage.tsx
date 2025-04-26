@@ -13,12 +13,6 @@ export default function LandingPage() {
       icon: "✨",
     },
     {
-      title: "Custom n8n Instances",
-      description:
-        "Connect to your own n8n instances with secure authentication.",
-      icon: "🔗",
-    },
-    {
       title: "RAG-Enhanced Intelligence",
       description:
         "Leverage retrieval-augmented generation for context-aware workflows.",
@@ -48,8 +42,7 @@ export default function LandingPage() {
                 </span>
               </h1>
               <p className="mt-4 text-xl text-gray-600 dark:text-gray-300">
-                Generate powerful n8n workflows using natural language. Connect
-                to your instances and let AI do the heavy lifting.
+                Generate powerful n8n workflows using natural language. Let AI do the heavy lifting.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
                 <Link to="/app">
@@ -72,9 +65,9 @@ export default function LandingPage() {
             <div className="w-full max-w-md rounded-xl bg-white p-2 shadow-2xl ring-1 ring-gray-900/10 dark:bg-gray-800 dark:ring-gray-700/10">
               <div className="overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-900 p-4">
                 <div className="flex items-center space-x-2 pb-4 border-b border-gray-200 dark:border-gray-700">
-                  <div className="h-3 w-3 rounded-full bg-red-500"></div>
-                  <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
-                  <div className="h-3 w-3 rounded-full bg-green-500"></div>
+                  <div className="h-3 w-3 rounded-full bg-red-500" />
+                  <div className="h-3 w-3 rounded-full bg-yellow-500" />
+                  <div className="h-3 w-3 rounded-full bg-green-500" />
                   <div className="ml-2 text-xs text-gray-500 dark:text-gray-400">
                     n8n-intelligence
                   </div>
@@ -105,10 +98,10 @@ export default function LandingPage() {
             Powerful{" "}
             <span className="text-blue-600 dark:text-blue-400">Features</span>
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
               <div
-                key={index}
+                key={feature.title}
                 className={`p-6 rounded-xl transition-all duration-200 ${
                   hoveredFeature === index
                     ? "shadow-lg bg-blue-50 dark:bg-gray-800 transform -translate-y-1"
@@ -143,17 +136,16 @@ export default function LandingPage() {
             How It{" "}
             <span className="text-blue-600 dark:text-blue-400">Works</span>
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="flex flex-col items-center text-center p-6">
               <div className="w-16 h-16 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 text-2xl mb-4">
                 1
               </div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                Connect Your n8n Instance
+                Describe Workflow Prompt
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
-                Enter your n8n API endpoint and authentication credentials
-                securely.
+                Use natural language to describe the automation you want to build.
               </p>
             </div>
             <div className="flex flex-col items-center text-center p-6">
@@ -161,23 +153,10 @@ export default function LandingPage() {
                 2
               </div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                Describe Your Workflow
+                Copy and Paste to n8n Canvas
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
-                Use natural language to tell AI what automation you want to
-                build.
-              </p>
-            </div>
-            <div className="flex flex-col items-center text-center p-6">
-              <div className="w-16 h-16 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 text-2xl mb-4">
-                3
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                Deploy & Run
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Review the generated workflow, make any adjustments, and deploy
-                it directly to your n8n instance.
+                Copy the generated workflow and paste it directly into your n8n canvas.
               </p>
             </div>
           </div>
