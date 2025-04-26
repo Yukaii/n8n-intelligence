@@ -70,6 +70,15 @@ function App() {
     "parse_nodes",
     "generate_workflow",
   ];
+  
+  // Step icons and labels for visual representation
+  const stepLabels = [
+    { icon: "🔍", label: "Extract Keywords" },
+    { icon: "🔎", label: "Search Nodes" },
+    { icon: "📦", label: "Fetch Nodes" },
+    { icon: "🧩", label: "Parse Nodes" },
+    { icon: "✨", label: "Generate Workflow" },
+  ];
 
   useEffect(() => {
     const stored = localStorage.getItem("serverUrl") || "";
@@ -188,8 +197,8 @@ function App() {
         // Keep the last partial message in the buffer
         buffer = messages[messages.length - 1];
       }
-    } catch (err: any) {
-      if (err.name === "AbortError") {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") {
         console.log("Fetch aborted");
         setError("Request cancelled.");
       } else {
@@ -210,7 +219,7 @@ function App() {
 
   const handleCopy = async () => {
     // Use finalResult now
-    if (finalResult && finalResult.workflow) {
+    if (finalResult?.workflow) {
       await navigator.clipboard.writeText(
         JSON.stringify(finalResult.workflow, null, 2),
       );
@@ -226,120 +235,214 @@ function App() {
   };
 
   return (
-    <div className="max-w-xl mx-auto mt-16 p-6 border rounded-lg shadow space-y-6">
-      <div className="flex justify-between items-center mb-2">
-        <h1 className="text-2xl font-bold">n8n Workflow Generator</h1>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="icon" aria-label="Settings">
-              <Settings />
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Server URL Settings</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-2 py-2">
-              <Input
-                value={serverUrlInput}
-                onChange={(e) => setServerUrlInput(e.target.value)}
-                placeholder="e.g. https://api.example.com"
-                className="w-full"
-              />
-              <div className="text-xs text-muted-foreground">
-                Leave blank to use the default server.
-              </div>
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 py-12 px-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-4">
+            <span className="text-blue-600 dark:text-blue-400">n8n</span> Workflow 
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600"> AI Generator</span>
+          </h1>
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+            Generate powerful n8n workflows using natural language. Tell AI what you want to automate.
+          </p>
+        </div>
+
+        {/* Main Interface Card */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+          {/* Card Header with Settings */}
+          <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center space-x-2">
+              <div className="h-3 w-3 rounded-full bg-red-500" />
+              <div className="h-3 w-3 rounded-full bg-yellow-500" />
+              <div className="h-3 w-3 rounded-full bg-green-500" />
+              <div className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-200">Workflow Generator</div>
             </div>
-            <DialogFooter>
-              <Button onClick={handleSaveServerUrl}>Save</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-      <Textarea
-        value={prompt}
-        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-          setPrompt(e.target.value)
-        }
-        placeholder="Describe your workflow..."
-        rows={6}
-        className="mb-2"
-      />
-      <div className="flex items-center gap-4">
-        {/* Use isLoading state */}
-        <Button onClick={handleGenerate} disabled={isLoading || !prompt.trim()}>
-          {isLoading ? (
-            <>
-              <Loader2 className="animate-spin mr-2 h-4 w-4" />
-              Generating...
-            </>
-          ) : (
-            "Generate Workflow"
-          )}
-        </Button>
-        {/* Display progress message */}
-        {isLoading && progressMessage && (
-          <span className="text-muted-foreground text-sm">
-            {progressMessage}
-          </span>
+            
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="ghost" className="p-2" aria-label="Settings">
+                  <Settings className="h-5 w-5 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-xl font-bold">Server URL Settings</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <Input
+                    value={serverUrlInput}
+                    onChange={(e) => setServerUrlInput(e.target.value)}
+                    placeholder="e.g. https://api.example.com"
+                    className="w-full"
+                  />
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    Leave blank to use the default server.
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button 
+                    onClick={handleSaveServerUrl}
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                  >
+                    Save Settings
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {/* Prompt Input Section */}
+          <div className="p-6 space-y-6">
+            <div>
+              <label htmlFor="prompt" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Describe your workflow in natural language
+              </label>
+              <Textarea
+                id="prompt"
+                value={prompt}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setPrompt(e.target.value)
+                }
+                placeholder="E.g., Create a workflow to send weekly reports from Google Sheets to Slack"
+                rows={6}
+                className="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 transition-all duration-200"
+              />
+            </div>
+
+            {/* Generate Button and Progress Message */}
+            <div className="flex items-center gap-4 flex-wrap">
+              <Button 
+                onClick={handleGenerate} 
+                disabled={isLoading || !prompt.trim()} 
+                size="lg"
+                className={`bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium transition-all duration-300 ${isLoading ? 'opacity-90' : ''}`}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="animate-spin mr-2 h-5 w-5" />
+                    Generating...
+                  </>
+                ) : (
+                  "Generate Workflow"
+                )}
+              </Button>
+              
+              {/* Progress Message */}
+              {isLoading && progressMessage && (
+                <span className="text-gray-600 dark:text-gray-300 text-sm animate-pulse">
+                  {progressMessage}
+                </span>
+              )}
+            </div>
+
+            {/* Step Indicators */}
+            {isLoading && (
+              <div className="my-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Generation Progress</span>
+                  <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                    {Math.round(((currentStepIndex + 1) / generationSteps.length) * 100)}%
+                  </span>
+                </div>
+                
+                {/* Progress Bar */}
+                <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700 mb-4">
+                  <div
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-300 ease-out"
+                    style={{
+                      width: `${((currentStepIndex + 1) / generationSteps.length) * 100}%`,
+                    }}
+                  />
+                </div>
+                
+                {/* Step Pills */}
+                <div className="flex justify-between flex-wrap gap-2">
+                  {stepLabels.map((step, index) => (
+                    <div 
+                      key={index}
+                      className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-all duration-200
+                        ${index <= currentStepIndex 
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' 
+                          : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}
+                    >
+                      <span>{step.icon}</span>
+                      <span>{step.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Error Display */}
+            {error && !isLoading && (
+              <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300">
+                <p className="text-sm font-medium">{error}</p>
+              </div>
+            )}
+
+            {/* Results Section */}
+            {finalResult && !isLoading && (
+              <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Generated Workflow</h2>
+                  
+                  {finalResult.workflow && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCopy}
+                      className="flex items-center gap-1 border-blue-200 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-900"
+                    >
+                      <Copy className="w-4 h-4" />
+                      <span>{copied ? "Copied!" : "Copy JSON"}</span>
+                    </Button>
+                  )}
+                </div>
+                
+                {/* Results Card */}
+                <div className="overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center space-x-2 p-3 bg-gray-200 dark:bg-gray-800">
+                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                    <div className="text-xs text-gray-500 dark:text-gray-400">workflow.json</div>
+                  </div>
+                  <pre className="p-4 overflow-x-auto text-sm text-gray-800 dark:text-gray-200">
+                    {JSON.stringify(finalResult?.workflow || {}, null, 2)}
+                  </pre>
+                </div>
+                
+                {/* Success Message */}
+                <div className="mt-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-sm">
+                  ✓ Workflow generated successfully! You can now copy the JSON and import it into your n8n instance.
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Quick Tips Section */}
+        {!finalResult && !isLoading && !error && (
+          <div className="mt-8 p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Quick Tips for Better Results
+            </h3>
+            <ul className="space-y-2 text-gray-600 dark:text-gray-300">
+              <li className="flex items-start gap-2">
+                <span className="text-blue-500 dark:text-blue-400">•</span>
+                <span>Be specific about which services to connect (e.g., Gmail, Slack, Google Sheets)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-500 dark:text-blue-400">•</span>
+                <span>Describe the trigger conditions and frequency (e.g., "when new email arrives", "every Monday")</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-500 dark:text-blue-400">•</span>
+                <span>Mention specific data transformations or conditions (e.g., "only if subject contains", "format as table")</span>
+              </li>
+            </ul>
+          </div>
         )}
       </div>
-
-      {/* Progress Bar */}
-      {isLoading && (
-        <div className="w-full bg-muted rounded-full h-2.5 dark:bg-gray-700 my-3">
-          <div
-            className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-out"
-            style={{
-              width: `${((currentStepIndex + 1) / generationSteps.length) * 100}%`,
-            }}
-          ></div>
-          {/* Optional: Add step labels below */}
-          {/* <div className="flex justify-between text-xs text-muted-foreground mt-1">
-             {generationSteps.map((step, index) => (
-               <span key={step} className={index <= currentStepIndex ? 'font-semibold' : ''}>
-                 {step.replace('_', ' ')}
-               </span>
-             ))}
-           </div> */}
-        </div>
-      )}
-
-      {/* Display error state */}
-      {error && !isLoading && (
-        <div className="text-red-500 text-sm mt-2">{error}</div>
-      )}
-      {/* Display finalResult state */}
-      {finalResult && !isLoading && (
-        <div className="mt-4">
-          <div className="flex items-center mb-1 gap-2">
-            <h2 className="font-semibold">Result</h2>
-            {/* Use finalResult for copy button */}
-            {finalResult.workflow ? (
-              <Button
-                size="sm"
-                className="px-2 py-1 h-7"
-                onClick={handleCopy}
-                title="Copy workflow JSON"
-              >
-                <Copy className="w-4 h-4 mr-1" />
-                {copied ? "Copied!" : "Copy"}
-              </Button>
-            ) : null}
-          </div>
-          {/* Display finalResult workflow */}
-          <pre className="bg-muted p-3 rounded text-xs overflow-x-auto">
-            {JSON.stringify(finalResult?.workflow || {}, null, 2)}
-          </pre>
-          {/* Optionally display other parts of finalResult like keywords for debugging */}
-          {/* <details className="mt-2 text-xs">
-            <summary>Debug Info</summary>
-            <pre className="bg-muted p-2 rounded text-xs overflow-x-auto">
-              {JSON.stringify({ keywords: finalResult.keywords, nodes_returned: finalResult.nodes?.length }, null, 2)}
-            </pre>
-          </details> */}
-        </div>
-      )}
     </div>
   );
 }
