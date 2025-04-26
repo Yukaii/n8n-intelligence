@@ -1,11 +1,16 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "n8n-intelligence-backend",
-  "compatibility_date": "2024-04-01",
-  "main": "./src/index.tsx",
-  "assets": {
-    "directory": "./dist"
+  "main": "./worker/index.ts",
+  "compatibility_date": "2025-04-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true
   },
+  "upload_source_maps": true,
+  "assets": {
+    "not_found_handling": "single-page-application"
+  },  
   "ai": {
     "binding": "AI"
   },
@@ -20,9 +25,5 @@
       "binding": "N8N_NODES",
       "bucket_name": "n8n-nodes"
     }
-  ],
-  "observability": {
-    "enabled": true,
-    "head_sampling_rate": 1
-  }
+  ]
 }

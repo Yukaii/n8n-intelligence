@@ -89,10 +89,9 @@ async function main() {
     }
   }
 
-  // Output file (relative to backend/src)
   const outputPath = path.resolve(
     process.cwd(),
-    "packages/backend/src/defaultNodes.json"
+    "packages/backend/data/defaultNodes.json"
   );
   await writeFile(outputPath, JSON.stringify(nodes, null, 2), "utf-8");
   console.log(`Wrote ${nodes.length} nodes to ${outputPath}`);

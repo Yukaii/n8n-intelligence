@@ -3,9 +3,8 @@ import OpenAI from 'openai'
 import type { Context } from 'hono'
 import { env } from 'hono/adapter'
 // @ts-ignore
-import prompt from './prompt.md?raw'
-import defaultNodes from './defaultNodes.json'
-import { renderer } from './renderer'
+import { prompt } from './utils/prompt'
+import defaultNodes from './data/defaultNodes.json'
 
 // Define the type for the Cloudflare AI binding
 interface AutoragSearchOptions {
@@ -305,15 +304,8 @@ async function searchHandler(c: Context<{ Bindings: Bindings }>) {
   }
 }
 
-// Define routes
 app.get('/nodes', getNodesHandler)
 app.post('/generate-workflow', generateWorkflowHandler)
 app.get('/search', searchHandler)
 
-app.use(renderer)
-app.get('/', (c) => {
-  return c.render(<h1>Hello!</h1>)
-})
-
-// Export the Hono app in the Cloudflare Worker format
 export default app

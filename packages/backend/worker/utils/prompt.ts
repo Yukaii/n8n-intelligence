@@ -1,10 +1,10 @@
-## n8n Workflow AI Definition: Core Concepts
+export const prompt = `## n8n Workflow AI Definition: Core Concepts
 
 ### 1. **Workflow**
 
 A workflow is a collection of nodes and the connections between them.
 
-```json
+\`\`\`json
 {
   "id": "uuid",
   "name": "string",
@@ -15,7 +15,7 @@ A workflow is a collection of nodes and the connections between them.
   "staticData": {/* optional */},
   "pinData": {/* optional */}
 }
-```
+\`\`\`
 
 ---
 
@@ -27,7 +27,7 @@ A node is a single step in a workflow. Each node has:
 |:--------------|:----------|:----------------------------------|
 | id            | string    | Unique node identifier            |
 | name          | string    | Node name (unique in workflow)    |
-| type          | string    | Node type (e.g. `httpRequest`)    |
+| type          | string    | Node type (e.g. \`httpRequest\`)    |
 | typeVersion   | number    | Node type version                 |
 | position      | [number, number] | Canvas position          |
 | parameters    | object    | Node parameters (see below)       |
@@ -40,7 +40,7 @@ A node is a single step in a workflow. Each node has:
 
 Connections define how nodes are linked.
 
-```json
+\`\`\`json
 {
   "NodeA": {
     "main": [
@@ -48,9 +48,9 @@ Connections define how nodes are linked.
     ]
   }
 }
-```
+\`\`\`
 -  Key: source node name
--  Each connection has a `type` (commonly `"main"`)
+-  Each connection has a \`type\` (commonly \`"main"\`)
 -  Each connection points to a destination node, with an index
 
 ---
@@ -69,11 +69,11 @@ Each node has parameters, which are defined in its node type description. Parame
 |:--------------|:----------|:----------------------------------|
 | displayName   | string    | Label shown in UI                |
 | name          | string    | Internal parameter name          |
-| type          | string    | Parameter type (`string`, `number`, `options`, etc.) |
+| type          | string    | Parameter type (\`string\`, \`number\`, \`options\`, etc.) |
 | default       | any       | Default value                    |
 | description   | string    | Help text (optional)             |
 | required      | boolean   | Is required? (optional)          |
-| options       | array     | For `options` type: choices      |
+| options       | array     | For \`options\` type: choices    |
 | displayOptions| object    | Show/hide logic (optional)       |
 
 ---
@@ -99,7 +99,7 @@ Each node type (e.g. HTTP Request, Slack, Google Sheets) defines:
 
 ### 6. **Credentials**
 
-Some nodes require credentials. Reference by name/id in the node’s `credentials` property.
+Some nodes require credentials. Reference by name/id in the node’s \`credentials\` property.
 
 ---
 
@@ -113,9 +113,9 @@ Workflow-level settings, e.g. timezone, error workflow, execution options.
 
 > You are an n8n workflow generator. Given a user’s intent, generate a workflow as a JSON object.
 > Use the following structure:
-> - `nodes`: List of nodes, each with `id`, `name`, `type`, `typeVersion`, `position`, `parameters`, and optional `credentials`.
-> - `connections`: Object mapping node names to their output connections.
-> - `settings`: Optional workflow settings.
+> - \`nodes\`: List of nodes, each with \`id\`, \`name\`, \`type\`, \`typeVersion\`, \`position\`, \`parameters\`, and optional \`credentials\`.
+> - \`connections\`: Object mapping node names to their output connections.
+> - \`settings\`: Optional workflow settings.
 
 > Reference [n8n node type documentation](https://docs.n8n.io/integrations/builtin/app-nodes/) for available node types and their parameters.
 
@@ -123,13 +123,13 @@ Workflow-level settings, e.g. timezone, error workflow, execution options.
 -  Use required parameters from the node’s type definition.
 -  For options, pick the most common or user-specified value.
 -  Use unique names for each node.
--  Connect nodes using the `connections` object, with `"main"` as the default connection type.
+-  Connect nodes using the \`connections\` object, with \`"main"\` as the default connection type.
 
 ---
 
 ## **Minimal Example Workflow**
 
-```json
+\`\`\`json
 {
   "nodes": [
     {
@@ -157,7 +157,7 @@ Workflow-level settings, e.g. timezone, error workflow, execution options.
     "Start": { "main": [ [ { "node": "Send Email", "type": "main", "index": 0 } ] ] }
   }
 }
-```
+\`\`\`
 
 ---
 
@@ -177,3 +177,4 @@ Workflow-level settings, e.g. timezone, error workflow, execution options.
 
 **Use only these fields and structures for AI workflow generation.**
 For parameter validation and types, rely on the node’s type definition and basic TypeScript types.
+`
