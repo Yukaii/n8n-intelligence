@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Loader2, Copy, Settings2 } from "lucide-react";
+import { Loader2, Copy, Settings } from "lucide-react";
 
 type WorkflowResult = {
   workflow?: unknown;
@@ -77,8 +77,8 @@ function App() {
         <h1 className="text-2xl font-bold">n8n Workflow Generator</h1>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="icon" aria-label="Settings">
-              <Settings2 className="w-5 h-5" />
+            <Button size="icon" aria-label="Settings">
+              <Settings />
             </Button>
           </DialogTrigger>
           <DialogContent>
