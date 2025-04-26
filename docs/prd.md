@@ -36,7 +36,7 @@ This project aims to provide an AI-powered interface to generate and manage n8n 
 -  The generated workflow is displayed in a user-friendly editor and can be exported or sent directly to the user’s n8n instance.
 
 #### 3.3. **Node Information Retrieval**
--  The system queries the n8n instance’s `/rest/nodes` endpoint (or similar) to retrieve up-to-date node definitions and parameters.
+-  The system can query the n8n instance’s `/rest/nodes` endpoint (or similar) using scripts like `scripts/crawl-nodes.ts` to retrieve up-to-date node definitions and parameters.
 -  If the user is not authenticated, the system uses a bundled default node list for prompt context.
 
 #### 3.4. **Frontend**
@@ -48,7 +48,7 @@ This project aims to provide an AI-powered interface to generate and manage n8n 
   - **Node Browser/Reference**: Browse available nodes and their descriptions.
 
 #### 3.5. **Backend**
--  Built with Hono (web framework) and Bun (runtime).
+-  Built using Cloudflare Workers (likely with Hono framework) and Bun (runtime/scripting).
 -  Responsibilities:
   - Handle authentication and proxy requests to n8n instances.
   - Manage user sessions and endpoint configs.
@@ -58,12 +58,13 @@ This project aims to provide an AI-powered interface to generate and manage n8n 
 
 #### 3.6. **RAG (Retrieval-Augmented Generation)**
 -  The backend or AI prompt layer will:
-  - Retrieve relevant node definitions and parameter info based on user prompt.
+  - Use vector embeddings of node definitions (created via scripts like `scripts/embed-and-vectorize.ts`) for semantic search.
+  - Retrieve relevant node definitions and parameter info based on user prompt similarity (using scripts like `scripts/query-vectorize.ts`).
   - Provide this context to the AI for more accurate and context-aware workflow generation.
 
 #### 3.7. **Default Node List**
--  The app ships with a default node list (from the latest official n8n release) for use when no endpoint is configured.
--  This list is also used to supplement node information for the AI prompt.
+-  The app ships with a default node list located at `worker/data/defaultNodes.json` (from a recent official n8n release) for use when no endpoint is configured.
+-  This list is also used to supplement node information for the AI prompt and potentially for the RAG vector store.
 
 ---
 
@@ -94,7 +95,7 @@ This project aims to provide an AI-powered interface to generate and manage n8n 
 | Layer      | Technology        | Notes                             |
 |:-----------|:------------------|:----------------------------------|
 | Frontend   | React, shadcn/ui, Vite | Modern UI, fast dev, composable |
-| Backend    | Hono, Bun         | Fast HTTP server, Bun for speed   |
+| Backend    | Cloudflare Workers, Hono, Bun | Scalable serverless, Bun for scripting/local dev |
 | AI         | OpenAI/Anthropic/etc | RAG prompt engineering           |
 | n8n API    | User-provided or default | Node info, workflow management |
 
