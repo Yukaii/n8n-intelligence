@@ -7,7 +7,7 @@ import { clerkMiddleware, getAuth } from "@hono/clerk-auth";
 
 import { Redis } from "@upstash/redis/cloudflare";
 import { prompt } from "./utils/prompt";
-import defaultNodes from "./data/defaultNodes.json";
+// import defaultNodes from "./data/defaultNodes.json";
 
 const QUOTA_LIMIT = 10;
 const QUOTA_WINDOW_SEC = 86400; // 24 hours
@@ -54,17 +54,17 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>();
 
-async function fetchNodes(endpoint?: string, token?: string): Promise<any> {
-  if (endpoint && token) {
-    const res = await fetch(`${endpoint}/rest/nodes`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) throw new Error(`n8n responded ${res.status}`);
-    return await res.json();
-  }
+// async function fetchNodes(endpoint?: string, token?: string): Promise<any> {
+//   if (endpoint && token) {
+//     const res = await fetch(`${endpoint}/rest/nodes`, {
+//       headers: { Authorization: `Bearer ${token}` },
+//     });
+//     if (!res.ok) throw new Error(`n8n responded ${res.status}`);
+//     return await res.json();
+//   }
 
-  return defaultNodes;
-}
+//   return defaultNodes;
+// }
 
 async function getNodesHandler(c: Context<{ Bindings: Bindings }>) {
   return c.json({
