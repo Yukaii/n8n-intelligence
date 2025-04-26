@@ -3,12 +3,11 @@ import OpenAI from "openai";
 import type { Context } from "hono";
 import { env } from "hono/adapter";
 import { streamSSE } from "hono/streaming";
-import { clerkMiddleware, getAuth } from '@hono/clerk-auth'
+import { clerkMiddleware, getAuth } from "@hono/clerk-auth";
 
 import { Redis } from "@upstash/redis/cloudflare";
 import { prompt } from "./utils/prompt";
 import defaultNodes from "./data/defaultNodes.json";
-
 
 const QUOTA_LIMIT = 10;
 const QUOTA_WINDOW_SEC = 86400; // 24 hours
@@ -47,8 +46,8 @@ type Bindings = {
   AI: AiBinding;
   OPENAI_API_KEY: string;
   N8N_NODES: R2Bucket;
-  CLERK_SECRET_KEY: string
-  VITE_CLERK_PUBLISHABLE_KEY: string
+  CLERK_SECRET_KEY: string;
+  VITE_CLERK_PUBLISHABLE_KEY: string;
   UPSTASH_REDIS_REST_URL: string;
   UPSTASH_REDIS_REST_TOKEN: string;
 };
@@ -70,7 +69,7 @@ async function fetchNodes(endpoint?: string, token?: string): Promise<any> {
 async function getNodesHandler(c: Context<{ Bindings: Bindings }>) {
   return c.json({
     message: "Not implemented yet",
-  })
+  });
 
   // try {
   //   const endpoint = c.req.query("endpoint");
@@ -240,14 +239,14 @@ async function fetchFullNode(item: any, env: Bindings): Promise<any> {
 }
 
 // Changed to use streamSSE for progress reporting
-async function generateWorkflowHandler (c: Context<{ Bindings: Bindings }>) {
-  const auth = getAuth(c)
+async function generateWorkflowHandler(c: Context<{ Bindings: Bindings }>) {
+  const auth = getAuth(c);
 
   if (!auth?.userId) {
     c.status(403);
     return c.json({
-      message: 'You are not logged in.',
-    })
+      message: "You are not logged in.",
+    });
   }
 
   // --- Quota logic start ---
@@ -491,10 +490,10 @@ async function generateWorkflowHandler (c: Context<{ Bindings: Bindings }>) {
       }
     }
   });
-};
+}
 
 async function searchHandler(c: Context<{ Bindings: Bindings }>) {
-  return c.status(403)
+  return c.status(403);
   /*
   const query = c.req.query("q");
   if (!query) {
@@ -551,7 +550,7 @@ async function searchHandler(c: Context<{ Bindings: Bindings }>) {
   */
 }
 
-app.use('*', (c, next) => {
+app.use("*", (c, next) => {
   const { CLERK_SECRET_KEY, VITE_CLERK_PUBLISHABLE_KEY } = env<Bindings>(c);
   return clerkMiddleware({
     secretKey: CLERK_SECRET_KEY,

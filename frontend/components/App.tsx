@@ -65,10 +65,14 @@ function App() {
   const quotaApiUrl = serverUrl
     ? `${serverUrl.replace(/\/$/, "")}/quota`
     : "/quota";
-  const { data: quota, error: quotaError, isLoading: quotaLoading } = useSWR(
+  const {
+    data: quota,
+    error: quotaError,
+    isLoading: quotaLoading,
+  } = useSWR(
     quotaApiUrl,
     quotaFetcher,
-    { refreshInterval: 60000 } // refresh every 60s
+    { refreshInterval: 60000 }, // refresh every 60s
   );
 
   const [isLoading, setIsLoading] = useState(false);
@@ -138,7 +142,9 @@ function App() {
       if (!response.ok) {
         // Handle 403 Forbidden specifically
         if (response.status === 403) {
-          setError("You do not have permission to access this resource (403 Forbidden).");
+          setError(
+            "You do not have permission to access this resource (403 Forbidden).",
+          );
           setIsLoading(false);
           setProgressMessage(null);
           return;
@@ -353,12 +359,17 @@ function App() {
             {/* Quota Info */}
             <div className="mb-2">
               {quotaLoading ? (
-                <span className="text-sm text-gray-500 dark:text-gray-400">Loading quota...</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  Loading quota...
+                </span>
               ) : quotaError ? (
-                <span className="text-sm text-red-500 dark:text-red-400">{quotaError.message || String(quotaError)}</span>
+                <span className="text-sm text-red-500 dark:text-red-400">
+                  {quotaError.message || String(quotaError)}
+                </span>
               ) : quota ? (
                 <span className="text-sm text-gray-700 dark:text-gray-300">
-                  Quota left: <span className="font-semibold">{quota.remaining}</span>
+                  Quota left:{" "}
+                  <span className="font-semibold">{quota.remaining}</span>
                   {" | "}
                   Resets:{" "}
                   <span>
@@ -379,7 +390,9 @@ function App() {
             <div className="flex items-center gap-4 flex-wrap">
               <Button
                 onClick={handleGenerate}
-                disabled={isLoading || !prompt.trim() || (quota && quota.remaining <= 0)}
+                disabled={
+                  isLoading || !prompt.trim() || (quota && quota.remaining <= 0)
+                }
                 size="lg"
                 className={`bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium transition-all duration-300 ${isLoading ? "opacity-90" : ""}`}
               >

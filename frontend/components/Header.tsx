@@ -1,6 +1,11 @@
 import * as React from "react";
 import { Link } from "@tanstack/react-router";
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  UserButton,
+} from "@clerk/clerk-react";
 
 export function Header() {
   return (
@@ -42,7 +47,8 @@ export function Header() {
               appearance={{
                 elements: {
                   userButtonAvatarBox: "w-8 h-8",
-                  userButtonPopoverActionButton: "text-sm font-medium text-gray-700 transition-colors hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400",
+                  userButtonPopoverActionButton:
+                    "text-sm font-medium text-gray-700 transition-colors hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400",
                 },
               }}
             />
