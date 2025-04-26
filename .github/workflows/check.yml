@@ -14,7 +14,7 @@ on:
 jobs:
   ai:
     runs-on: ubuntu-latest
-    name: Run bun build as AI check
+    name: Lint and Build Check
     steps:
       - name: Checkout
         uses: actions/checkout@v4
