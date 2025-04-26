@@ -9,7 +9,7 @@ import path from "node:path";
 import OpenAI from "openai";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const VECTORIZE_API_URL = process.env.VECTORIZE_API_URL; // e.g. https://api.cloudflare.com/client/v4/accounts/{account_id}/vectorize/indexes/n8n-intelligence/insert
+const VECTORIZE_API_URL = process.env.VECTORIZE_API_URL!; // e.g. https://api.cloudflare.com/client/v4/accounts/{account_id}/vectorize/indexes/n8n-intelligence/insert
 const VECTORIZE_API_TOKEN = process.env.VECTORIZE_API_TOKEN; // Cloudflare API Token
 
 if (!OPENAI_API_KEY || !VECTORIZE_API_URL || !VECTORIZE_API_TOKEN) {
