@@ -23,12 +23,14 @@ export function Header() {
           >
             Home
           </Link>
-          <Link
-            to="/app"
-            className="text-sm font-medium text-gray-700 transition-colors hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400 [&.active]:text-blue-600 [&.active]:font-semibold dark:[&.active]:text-blue-400"
-          >
-            App
-          </Link>
+          <SignedIn>
+            <Link
+              to="/app"
+              className="text-sm font-medium text-gray-700 transition-colors hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400 [&.active]:text-blue-600 [&.active]:font-semibold dark:[&.active]:text-blue-400"
+            >
+              App
+            </Link>
+          </SignedIn>
           <SignedOut>
             <span className="text-sm font-medium text-gray-700 transition-colors hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400 cursor-pointer">
               <SignInButton mode="modal" />
