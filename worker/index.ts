@@ -5,8 +5,13 @@ import { env } from "hono/adapter";
 import { streamSSE } from "hono/streaming";
 import { clerkMiddleware, getAuth } from '@hono/clerk-auth'
 
+import { Redis } from "@upstash/redis/cloudflare";
 import { prompt } from "./utils/prompt";
 import defaultNodes from "./data/defaultNodes.json";
+
+
+const QUOTA_LIMIT = 10;
+const QUOTA_WINDOW_SEC = 86400; // 24 hours
 
 interface AutoragSearchOptions {
   query: string;
@@ -44,6 +49,8 @@ type Bindings = {
   N8N_NODES: R2Bucket;
   CLERK_SECRET_KEY: string
   VITE_CLERK_PUBLISHABLE_KEY: string
+  UPSTASH_REDIS_REST_URL: string;
+  UPSTASH_REDIS_REST_TOKEN: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -242,6 +249,42 @@ async function generateWorkflowHandler (c: Context<{ Bindings: Bindings }>) {
       message: 'You are not logged in.',
     })
   }
+
+  // --- Quota logic start ---
+  const redis = new Redis({
+    url: c.env.UPSTASH_REDIS_REST_URL,
+    token: c.env.UPSTASH_REDIS_REST_TOKEN,
+  });
+  const quotaKey = `quota:${auth.userId}`;
+  const quotaRaw = await redis.get(quotaKey);
+  let quota: number;
+  let reset: number | null = null;
+  if (quotaRaw === null) {
+    // First use: set quota and expiry
+    await redis.set(quotaKey, QUOTA_LIMIT - 1, { ex: QUOTA_WINDOW_SEC });
+    quota = QUOTA_LIMIT - 1;
+    reset = Date.now() + QUOTA_WINDOW_SEC * 1000;
+  } else {
+    quota = Number(quotaRaw);
+    if (Number.isNaN(quota)) quota = 0;
+    if (quota <= 0) {
+      // Get TTL for reset time
+      const ttl = await redis.ttl(quotaKey);
+      reset = Date.now() + (ttl > 0 ? ttl * 1000 : 0);
+      c.status(429);
+      return c.json({
+        message: "Quota exceeded. Please wait for reset.",
+        remaining: 0,
+        reset,
+      });
+    }
+    // Decrement quota
+    quota = Number(await redis.decr(quotaKey));
+    // Get TTL for reset time
+    const ttl = await redis.ttl(quotaKey);
+    reset = Date.now() + (ttl > 0 ? ttl * 1000 : 0);
+  }
+  // --- Quota logic end ---
 
   let streamClosed = false;
 
@@ -520,5 +563,24 @@ app.post("/generate-workflow", generateWorkflowHandler);
 app.get("/nodes", getNodesHandler);
 // POST '/generate-workflow' is now defined above using streamSSE
 app.get("/search", searchHandler);
+
+// --- Quota info endpoint ---
+app.get("/quota", async (c) => {
+  const auth = getAuth(c);
+  if (!auth?.userId) {
+    c.status(403);
+    return c.json({ message: "You are not logged in." });
+  }
+  const redis = new Redis({
+    url: c.env.UPSTASH_REDIS_REST_URL,
+    token: c.env.UPSTASH_REDIS_REST_TOKEN,
+  });
+  const quotaKey = `quota:${auth.userId}`;
+  let quota = await redis.get(quotaKey);
+  let remaining = quota === null ? QUOTA_LIMIT : Number(quota);
+  let ttl = await redis.ttl(quotaKey);
+  let reset = Date.now() + (ttl > 0 ? ttl * 1000 : QUOTA_WINDOW_SEC * 1000);
+  return c.json({ remaining, reset });
+});
 
 export default app;
