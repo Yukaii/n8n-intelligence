@@ -42,7 +42,8 @@ export default function LandingPage() {
                 </span>
               </h1>
               <p className="mt-4 text-xl text-gray-600 dark:text-gray-300">
-                Generate powerful n8n workflows using natural language. Let AI do the heavy lifting.
+                Generate powerful n8n workflows using natural language. Let AI
+                do the heavy lifting.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
                 <Link to="/app">
@@ -145,7 +146,8 @@ export default function LandingPage() {
                 Describe Workflow Prompt
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
-                Use natural language to describe the automation you want to build.
+                Use natural language to describe the automation you want to
+                build.
               </p>
             </div>
             <div className="flex flex-col items-center text-center p-6">
@@ -156,7 +158,8 @@ export default function LandingPage() {
                 Copy and Paste to n8n Canvas
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
-                Copy the generated workflow and paste it directly into your n8n canvas.
+                Copy the generated workflow and paste it directly into your n8n
+                canvas.
               </p>
             </div>
           </div>

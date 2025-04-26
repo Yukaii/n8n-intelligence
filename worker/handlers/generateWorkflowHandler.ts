@@ -6,7 +6,11 @@ import { getAuth } from "@hono/clerk-auth";
 import { Redis } from "@upstash/redis/cloudflare";
 import { prompt } from "../utils/prompt";
 import { extractKeywordsFromPrompt } from "../utils/keyword";
-import { searchNodesForKeywords, fetchFullNode, type NodeSearchResult } from "../utils/nodeSearch";
+import {
+  searchNodesForKeywords,
+  fetchFullNode,
+  type NodeSearchResult,
+} from "../utils/nodeSearch";
 import { generateWorkflowWithAI } from "../utils/workflow";
 import type { INodeTypeDescription } from "n8n-workflow";
 import { QUOTA_LIMIT, QUOTA_WINDOW_SEC } from "../utils/quota";
@@ -87,56 +91,62 @@ export async function generateWorkflowHandler(c: Context) {
 
     const writeProgress = getWriteProgress(stream, () => streamClosed);
     const writeResult = getWriteResult(stream, () => streamClosed);
-    const writeError = getWriteError(stream, () => streamClosed, () => { streamClosed = true; });
+    const writeError = getWriteError(
+      stream,
+      () => streamClosed,
+      () => {
+        streamClosed = true;
+      },
+    );
 
-type StreamSSEType = Parameters<Parameters<typeof streamSSE>[1]>[0];
+    type StreamSSEType = Parameters<Parameters<typeof streamSSE>[1]>[0];
 
-function getWriteProgress(stream: StreamSSEType, isClosed: () => boolean) {
-  return async (
-    step: string,
-    status: string,
-    message?: string,
-    data?: unknown,
-  ) => {
-    if (isClosed()) return;
-    const payload: ProgressPayload = { step, status, message, data };
-    await stream.writeSSE({
-      event: "progress",
-      data: JSON.stringify(payload),
-      id: String(Date.now()),
-    });
-  };
-}
+    function getWriteProgress(stream: StreamSSEType, isClosed: () => boolean) {
+      return async (
+        step: string,
+        status: string,
+        message?: string,
+        data?: unknown,
+      ) => {
+        if (isClosed()) return;
+        const payload: ProgressPayload = { step, status, message, data };
+        await stream.writeSSE({
+          event: "progress",
+          data: JSON.stringify(payload),
+          id: String(Date.now()),
+        });
+      };
+    }
 
-function getWriteResult(stream: StreamSSEType, isClosed: () => boolean) {
-  return async (resultData: ResultPayload) => {
-    if (isClosed()) return;
-    await stream.writeSSE({
-      event: "result",
-      data: JSON.stringify(resultData),
-      id: String(Date.now()),
-    });
-  };
-}
+    function getWriteResult(stream: StreamSSEType, isClosed: () => boolean) {
+      return async (resultData: ResultPayload) => {
+        if (isClosed()) return;
+        await stream.writeSSE({
+          event: "result",
+          data: JSON.stringify(resultData),
+          id: String(Date.now()),
+        });
+      };
+    }
 
-function getWriteError(
-  stream: StreamSSEType,
-  isClosed: () => boolean,
-  setClosed: () => void,
-) {
-  return async (errorMsg: string, details?: unknown) => {
-    if (isClosed()) return;
-    const payload: ErrorPayload = { error: errorMsg, details };
-    console.error("Workflow Generation Error:", errorMsg, details);
-    await stream.writeSSE({
-      event: "error",
-      data: JSON.stringify(payload),
-      id: String(Date.now()),
-    });
-    await stream.close();
-    setClosed();
-  };
-}
+    function getWriteError(
+      stream: StreamSSEType,
+      isClosed: () => boolean,
+      setClosed: () => void,
+    ) {
+      return async (errorMsg: string, details?: unknown) => {
+        if (isClosed()) return;
+        const payload: ErrorPayload = { error: errorMsg, details };
+        console.error("Workflow Generation Error:", errorMsg, details);
+        await stream.writeSSE({
+          event: "error",
+          data: JSON.stringify(payload),
+          id: String(Date.now()),
+        });
+        await stream.close();
+        setClosed();
+      };
+    }
 
     try {
       const body = await c.req.json<{
@@ -206,10 +216,24 @@ function getWriteError(
         "Fetching full node details...",
       );
       const combinedResultsData = searchResults[0]?.data || [];
-      let allNodesFetched: Array<Partial<INodeTypeDescription> & { filename?: string; file_id?: string; content?: unknown }>;
+      let allNodesFetched: Array<
+        Partial<INodeTypeDescription> & {
+          filename?: string;
+          file_id?: string;
+          content?: unknown;
+        }
+      >;
       try {
         allNodesFetched = await Promise.all(
-          combinedResultsData.map((item: Partial<INodeTypeDescription> & { filename?: string; file_id?: string; content?: unknown }) => fetchFullNode(item, c.env)),
+          combinedResultsData.map(
+            (
+              item: Partial<INodeTypeDescription> & {
+                filename?: string;
+                file_id?: string;
+                content?: unknown;
+              },
+            ) => fetchFullNode(item, c.env),
+          ),
         );
       } catch (err: unknown) {
         await writeError(
@@ -225,7 +249,15 @@ function getWriteError(
         ),
       )
         .map((id) => allNodesFetched.find((node) => node?.file_id === id))
-        .filter((node): node is Partial<INodeTypeDescription> & { filename?: string; file_id?: string; content?: unknown } => !!node);
+        .filter(
+          (
+            node,
+          ): node is Partial<INodeTypeDescription> & {
+            filename?: string;
+            file_id?: string;
+            content?: unknown;
+          } => !!node,
+        );
 
       await writeProgress(
         "fetch_nodes",
@@ -237,31 +269,37 @@ function getWriteError(
       const nodes = parseNodeContents(uniqueNodesFull);
       await writeProgress("parse_nodes", "completed", "Node content parsed.");
 
-function parseNodeContents(
-  nodes: Array<Partial<INodeTypeDescription> & { filename?: string; file_id?: string; content?: unknown }>
-): Array<{ file_id?: string; filename?: string; content: unknown }> {
-  return nodes.map(
-    (node): { file_id?: string; filename?: string; content: unknown } => {
-      const { file_id, filename, content } = node;
-      let parsedContent: unknown = content;
-      try {
-        if (typeof content === "string" && content.trim() !== "") {
-          parsedContent = JSON.parse(content);
-        } else if (typeof content === "object" && content !== null) {
-          parsedContent = content;
-        }
-      } catch (error) {
-        console.warn(
-          "Non-JSON content encountered for node:",
-          filename,
-          error,
+      function parseNodeContents(
+        nodes: Array<
+          Partial<INodeTypeDescription> & {
+            filename?: string;
+            file_id?: string;
+            content?: unknown;
+          }
+        >,
+      ): Array<{ file_id?: string; filename?: string; content: unknown }> {
+        return nodes.map(
+          (node): { file_id?: string; filename?: string; content: unknown } => {
+            const { file_id, filename, content } = node;
+            let parsedContent: unknown = content;
+            try {
+              if (typeof content === "string" && content.trim() !== "") {
+                parsedContent = JSON.parse(content);
+              } else if (typeof content === "object" && content !== null) {
+                parsedContent = content;
+              }
+            } catch (error) {
+              console.warn(
+                "Non-JSON content encountered for node:",
+                filename,
+                error,
+              );
+              parsedContent = content;
+            }
+            return { file_id, filename, content: parsedContent };
+          },
         );
-        parsedContent = content;
       }
-      return { file_id, filename, content: parsedContent };
-    }
-  );
-}
 
       await writeProgress(
         "generate_workflow",

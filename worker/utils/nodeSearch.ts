@@ -5,7 +5,13 @@ import type { INodeTypeDescription } from "n8n-workflow";
 // Type for node search results
 export type NodeSearchResult = {
   query: string;
-  data: Array<Partial<INodeTypeDescription> & { filename?: string; file_id?: string; content?: unknown }>;
+  data: Array<
+    Partial<INodeTypeDescription> & {
+      filename?: string;
+      file_id?: string;
+      content?: unknown;
+    }
+  >;
   error?: string;
 };
 
@@ -25,7 +31,18 @@ export async function searchNodesForKeywords(
       ranking_options: { score_threshold: 0.25 },
     });
     console.log("Combined search results received.");
-    const data = (results as { data?: Array<Partial<INodeTypeDescription> & { filename?: string; file_id?: string; content?: unknown }> }).data || [];
+    const data =
+      (
+        results as {
+          data?: Array<
+            Partial<INodeTypeDescription> & {
+              filename?: string;
+              file_id?: string;
+              content?: unknown;
+            }
+          >;
+        }
+      ).data || [];
     return { searchResults: [{ query: combinedQuery, data }] };
   } catch (e) {
     console.error("Error during combined node search:", combinedQuery, e);
@@ -37,9 +54,19 @@ export async function searchNodesForKeywords(
 
 // Fetch the full node content from storage if available
 export async function fetchFullNode(
-  item: Partial<INodeTypeDescription> & { filename?: string; file_id?: string; content?: unknown },
-  env: Env
-): Promise<Partial<INodeTypeDescription> & { filename?: string; file_id?: string; content?: unknown }> {
+  item: Partial<INodeTypeDescription> & {
+    filename?: string;
+    file_id?: string;
+    content?: unknown;
+  },
+  env: Env,
+): Promise<
+  Partial<INodeTypeDescription> & {
+    filename?: string;
+    file_id?: string;
+    content?: unknown;
+  }
+> {
   const { filename } = item;
   if (typeof filename === "string" && filename.length > 0) {
     const safeFilename: string = filename;

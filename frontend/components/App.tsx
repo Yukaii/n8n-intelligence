@@ -21,7 +21,9 @@ type WorkflowResult = {
   [key: string]: unknown;
 };
 
-function parseSSEMessage(chunk: string): { event: string; data: unknown } | null {
+function parseSSEMessage(
+  chunk: string,
+): { event: string; data: unknown } | null {
   const lines = chunk.split("\n").filter((line) => line.trim() !== "");
   let event = "message"; // Default event type
   let data = "";
@@ -195,9 +197,16 @@ function App() {
             if (parsed) {
               if (parsed.event === "progress") {
                 // Type guard for progress event
-                const data = parsed.data as { step?: string; status?: string; message?: string };
+                const data = parsed.data as {
+                  step?: string;
+                  status?: string;
+                  message?: string;
+                };
                 const { step, status, message: progressMsg } = data;
-                setProgressMessage(progressMsg || (step ? `Processing step: ${step}...` : "Processing..."));
+                setProgressMessage(
+                  progressMsg ||
+                    (step ? `Processing step: ${step}...` : "Processing..."),
+                );
                 // Update step index when a step is completed
                 if (step && status === "completed") {
                   const stepIndex = generationSteps.indexOf(step);
@@ -215,8 +224,7 @@ function App() {
                 // Type guard for error event
                 const data = parsed.data as { error?: string };
                 setError(
-                  data.error ||
-                    "An unknown error occurred during generation.",
+                  data.error || "An unknown error occurred during generation.",
                 );
                 setProgressMessage(null); // Clear progress on error
                 setCurrentStepIndex(-1); // Reset steps on error
@@ -353,7 +361,7 @@ function App() {
                   "Send an SMS via Twilio when a Stripe payment is received",
                   "Backup files from Google Drive to AWS S3 every Friday",
                   "Alert me on Telegram when a website is down",
-                  "Extract data from incoming emails and add to Google Sheets"
+                  "Extract data from incoming emails and add to Google Sheets",
                 ];
                 return (
                   <div className="mb-4">
