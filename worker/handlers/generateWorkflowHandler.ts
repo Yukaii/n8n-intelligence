@@ -11,6 +11,34 @@ import { generateWorkflowWithAI } from "../utils/workflow";
 import type { INodeTypeDescription } from "n8n-workflow";
 import { QUOTA_LIMIT, QUOTA_WINDOW_SEC } from "../utils/quota";
 
+async function checkQuota(c: Context, userId: string) {
+  const redis = new Redis({
+    url: c.env.UPSTASH_REDIS_REST_URL,
+    token: c.env.UPSTASH_REDIS_REST_TOKEN,
+  });
+  const quotaKey = `quota:${userId}`;
+  const quotaRaw = await redis.get(quotaKey);
+  let quota: number;
+  let reset: number | null = null;
+  if (quotaRaw === null) {
+    await redis.set(quotaKey, QUOTA_LIMIT - 1, { ex: QUOTA_WINDOW_SEC });
+    quota = QUOTA_LIMIT - 1;
+    reset = Date.now() + QUOTA_WINDOW_SEC * 1000;
+  } else {
+    quota = Number(quotaRaw);
+    if (Number.isNaN(quota)) quota = 0;
+    if (quota <= 0) {
+      const ttl = await redis.ttl(quotaKey);
+      reset = Date.now() + (ttl > 0 ? ttl * 1000 : 0);
+      return { allowed: false, remaining: 0, reset };
+    }
+    quota = Number(await redis.decr(quotaKey));
+    const ttl = await redis.ttl(quotaKey);
+    reset = Date.now() + (ttl > 0 ? ttl * 1000 : 0);
+  }
+  return { allowed: true, remaining: quota, reset };
+}
+
 // Changed to use streamSSE for progress reporting
 export async function generateWorkflowHandler(c: Context) {
   const auth = getAuth(c);
@@ -22,41 +50,15 @@ export async function generateWorkflowHandler(c: Context) {
     });
   }
 
-  // --- Quota logic start ---
-  const redis = new Redis({
-    url: c.env.UPSTASH_REDIS_REST_URL,
-    token: c.env.UPSTASH_REDIS_REST_TOKEN,
-  });
-  const quotaKey = `quota:${auth.userId}`;
-  const quotaRaw = await redis.get(quotaKey);
-  let quota: number;
-  let reset: number | null = null;
-  if (quotaRaw === null) {
-    // First use: set quota and expiry
-    await redis.set(quotaKey, QUOTA_LIMIT - 1, { ex: QUOTA_WINDOW_SEC });
-    quota = QUOTA_LIMIT - 1;
-    reset = Date.now() + QUOTA_WINDOW_SEC * 1000;
-  } else {
-    quota = Number(quotaRaw);
-    if (Number.isNaN(quota)) quota = 0;
-    if (quota <= 0) {
-      // Get TTL for reset time
-      const ttl = await redis.ttl(quotaKey);
-      reset = Date.now() + (ttl > 0 ? ttl * 1000 : 0);
-      c.status(429);
-      return c.json({
-        message: "Quota exceeded. Please wait for reset.",
-        remaining: 0,
-        reset,
-      });
-    }
-    // Decrement quota
-    quota = Number(await redis.decr(quotaKey));
-    // Get TTL for reset time
-    const ttl = await redis.ttl(quotaKey);
-    reset = Date.now() + (ttl > 0 ? ttl * 1000 : 0);
+  const quotaResult = await checkQuota(c, auth.userId);
+  if (!quotaResult.allowed) {
+    c.status(429);
+    return c.json({
+      message: "Quota exceeded. Please wait for reset.",
+      remaining: 0,
+      reset: quotaResult.reset,
+    });
   }
-  // --- Quota logic end ---
 
   let streamClosed = false;
 
@@ -83,42 +85,58 @@ export async function generateWorkflowHandler(c: Context) {
       details?: unknown;
     };
 
-    const writeProgress = async (
-      step: string,
-      status: string,
-      message?: string,
-      data?: unknown,
-    ) => {
-      if (streamClosed) return;
-      const payload: ProgressPayload = { step, status, message, data };
-      await stream.writeSSE({
-        event: "progress",
-        data: JSON.stringify(payload),
-        id: String(Date.now()),
-      });
-    };
+    const writeProgress = getWriteProgress(stream, () => streamClosed);
+    const writeResult = getWriteResult(stream, () => streamClosed);
+    const writeError = getWriteError(stream, () => streamClosed, () => { streamClosed = true; });
 
-    const writeResult = async (resultData: ResultPayload) => {
-      if (streamClosed) return;
-      await stream.writeSSE({
-        event: "result",
-        data: JSON.stringify(resultData),
-        id: String(Date.now()),
-      });
-    };
+type StreamSSEType = Parameters<Parameters<typeof streamSSE>[1]>[0];
 
-    const writeError = async (errorMsg: string, details?: unknown) => {
-      if (streamClosed) return;
-      const payload: ErrorPayload = { error: errorMsg, details };
-      console.error("Workflow Generation Error:", errorMsg, details);
-      await stream.writeSSE({
-        event: "error",
-        data: JSON.stringify(payload),
-        id: String(Date.now()),
-      });
-      await stream.close();
-      streamClosed = true;
-    };
+function getWriteProgress(stream: StreamSSEType, isClosed: () => boolean) {
+  return async (
+    step: string,
+    status: string,
+    message?: string,
+    data?: unknown,
+  ) => {
+    if (isClosed()) return;
+    const payload: ProgressPayload = { step, status, message, data };
+    await stream.writeSSE({
+      event: "progress",
+      data: JSON.stringify(payload),
+      id: String(Date.now()),
+    });
+  };
+}
+
+function getWriteResult(stream: StreamSSEType, isClosed: () => boolean) {
+  return async (resultData: ResultPayload) => {
+    if (isClosed()) return;
+    await stream.writeSSE({
+      event: "result",
+      data: JSON.stringify(resultData),
+      id: String(Date.now()),
+    });
+  };
+}
+
+function getWriteError(
+  stream: StreamSSEType,
+  isClosed: () => boolean,
+  setClosed: () => void,
+) {
+  return async (errorMsg: string, details?: unknown) => {
+    if (isClosed()) return;
+    const payload: ErrorPayload = { error: errorMsg, details };
+    console.error("Workflow Generation Error:", errorMsg, details);
+    await stream.writeSSE({
+      event: "error",
+      data: JSON.stringify(payload),
+      id: String(Date.now()),
+    });
+    await stream.close();
+    setClosed();
+  };
+}
 
     try {
       const body = await c.req.json<{
@@ -216,28 +234,34 @@ export async function generateWorkflowHandler(c: Context) {
       );
 
       await writeProgress("parse_nodes", "started", "Parsing node content...");
-      const nodes = uniqueNodesFull.map(
-        (node): { file_id?: string; filename?: string; content: unknown } => {
-          const { file_id, filename, content } = node;
-          let parsedContent: unknown = content;
-          try {
-            if (typeof content === "string" && content.trim() !== "") {
-              parsedContent = JSON.parse(content);
-            } else if (typeof content === "object" && content !== null) {
-              parsedContent = content;
-            }
-          } catch (error) {
-            console.warn(
-              "Non-JSON content encountered for node:",
-              filename,
-              error,
-            );
-            parsedContent = content;
-          }
-          return { file_id, filename, content: parsedContent };
-        }
-      );
+      const nodes = parseNodeContents(uniqueNodesFull);
       await writeProgress("parse_nodes", "completed", "Node content parsed.");
+
+function parseNodeContents(
+  nodes: Array<Partial<INodeTypeDescription> & { filename?: string; file_id?: string; content?: unknown }>
+): Array<{ file_id?: string; filename?: string; content: unknown }> {
+  return nodes.map(
+    (node): { file_id?: string; filename?: string; content: unknown } => {
+      const { file_id, filename, content } = node;
+      let parsedContent: unknown = content;
+      try {
+        if (typeof content === "string" && content.trim() !== "") {
+          parsedContent = JSON.parse(content);
+        } else if (typeof content === "object" && content !== null) {
+          parsedContent = content;
+        }
+      } catch (error) {
+        console.warn(
+          "Non-JSON content encountered for node:",
+          filename,
+          error,
+        );
+        parsedContent = content;
+      }
+      return { file_id, filename, content: parsedContent };
+    }
+  );
+}
 
       await writeProgress(
         "generate_workflow",
