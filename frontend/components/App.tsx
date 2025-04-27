@@ -439,7 +439,7 @@ function App() {
                   isLoading || !prompt.trim() || (quota && quota.remaining <= 0)
                 }
                 size="lg"
-                className={`bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium transition-all duration-300 ${isLoading ? "opacity-90" : ""}`}
+                className={`min-w-[200px] bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium transition-all duration-300 ${isLoading ? "opacity-90" : ""}`}
               >
                 {isLoading ? (
                   <>
