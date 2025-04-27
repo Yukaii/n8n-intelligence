@@ -6,6 +6,7 @@ import {
   createHashHistory,
 } from "@tanstack/react-router";
 import { ClerkProvider } from "@clerk/clerk-react";
+import { PostHogProvider } from "posthog-js/react";
 
 import { routeTree } from "./routeTree.gen";
 
@@ -26,15 +27,24 @@ if (!PUBLISHABLE_KEY) {
   throw new Error("Missing Publishable Key");
 }
 
+const posthogOptions = {
+  api_host: import.meta.env.VITE_POSTHOG_HOST,
+};
+
 // biome-ignore lint/style/noNonNullAssertion: <explanation>
 const rootElement = document.getElementById("root")!;
 if (!rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement);
   root.render(
     <StrictMode>
-      <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
-        <RouterProvider router={router} />
-      </ClerkProvider>
+      <PostHogProvider
+        apiKey={import.meta.env.VITE_POSTHOG_KEY}
+        options={posthogOptions}
+      >
+        <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
+          <RouterProvider router={router} />
+        </ClerkProvider>
+      </PostHogProvider>
     </StrictMode>,
   );
 }
