@@ -439,11 +439,11 @@ function App() {
                   isLoading || !prompt.trim() || (quota && quota.remaining <= 0)
                 }
                 size="lg"
-                className={`min-w-[200px] bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium transition-all duration-300 ${isLoading ? "opacity-90" : ""}`}
+                className={`min-w-[200px] border border-transparent bg-gradient-to-r from-blue-500 to-purple-600 hover:opacity-70 text-white font-medium transition-all transition-background duration-300 ${isLoading ? "opacity-90" : ""}`}
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="animate-spin mr-2 h-5 w-5" />
+                    <Loader2 className="animate-spin mr-2" />
                     Generating...
                   </>
                 ) : (
