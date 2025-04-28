@@ -80,7 +80,7 @@ export default function LandingPage() {
                       ) {
                         if (point <= start) return 0;
                         if (point >= end) return 1;
-                        let x = (point - start) / (end - start);
+                        const x = (point - start) / (end - start);
                         return x * x * (3 - 2 * x);
                       }
 
