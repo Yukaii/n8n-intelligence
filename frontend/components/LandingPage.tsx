@@ -137,6 +137,20 @@ export default function LandingPage() {
             How It{" "}
             <span className="text-blue-600 dark:text-blue-400">Works</span>
           </h2>
+
+          {/* Video Embed */}
+          <div className="mb-12 max-w-4xl mx-auto">
+            <div className="relative w-full overflow-hidden rounded-xl shadow-lg" style={{ paddingBottom: "56.25%" }}>
+              <iframe
+                className="absolute top-0 left-0 w-full h-full"
+                src="https://www.youtube.com/embed/Wr--9nKBqKw"
+                title="n8n Intelligence Demo"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="flex flex-col items-center text-center p-6">
               <div className="w-16 h-16 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 text-2xl mb-4">
