@@ -9,7 +9,8 @@
 		"ignoreUnknown": false,
 		"ignore": [
 			"frontend/components/ui/**/*",
-			"worker/data"
+			"worker/data",
+			"frontend/routeTree.gen.ts"
 		]
 	},
 	"formatter": {

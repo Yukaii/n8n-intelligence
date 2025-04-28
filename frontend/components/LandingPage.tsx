@@ -58,6 +58,47 @@ export default function LandingPage() {
                   size="lg"
                   variant="outline"
                   className="border-gray-300 hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800"
+                  onClick={() => {
+                    const header = document.querySelector("header");
+                    const features = document.getElementById("features");
+                    if (features) {
+                      const headerHeight = header
+                        ? header.getBoundingClientRect().height
+                        : 0;
+                      const featuresTop =
+                        features.getBoundingClientRect().top + window.scrollY;
+                      const targetScroll = featuresTop - headerHeight;
+                      const startScroll = window.scrollY;
+                      const distance = targetScroll - startScroll;
+                      const duration = 300;
+                      const startTimeRef = { value: null as number | null };
+
+                      function smoothStep(
+                        start: number,
+                        end: number,
+                        point: number,
+                      ) {
+                        if (point <= start) return 0;
+                        if (point >= end) return 1;
+                        const x = (point - start) / (end - start);
+                        return x * x * (3 - 2 * x);
+                      }
+
+                      function animateScroll(currentTime: number) {
+                        if (startTimeRef.value === null)
+                          startTimeRef.value = currentTime;
+                        const elapsed = currentTime - (startTimeRef.value ?? 0);
+                        const progress = Math.min(elapsed / duration, 1);
+                        const ease = smoothStep(0, 1, progress);
+                        window.scrollTo(0, startScroll + distance * ease);
+                        if (progress < 1) {
+                          requestAnimationFrame(animateScroll);
+                        }
+                      }
+
+                      requestAnimationFrame(animateScroll);
+                    }
+                  }}
                 >
                   Learn More
                 </Button>
@@ -93,7 +134,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-16 bg-white dark:bg-gray-900">
+      <section id="features" className="py-16 bg-white dark:bg-gray-900">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
           <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-12">
             Powerful{" "}
@@ -137,6 +178,23 @@ export default function LandingPage() {
             How It{" "}
             <span className="text-blue-600 dark:text-blue-400">Works</span>
           </h2>
+
+          {/* Video Embed */}
+          <div className="mb-12 max-w-4xl mx-auto">
+            <div
+              className="relative w-full overflow-hidden rounded-xl shadow-lg"
+              style={{ paddingBottom: "56.25%" }}
+            >
+              <iframe
+                className="absolute top-0 left-0 w-full h-full"
+                src="https://www.youtube.com/embed/Wr--9nKBqKw"
+                title="n8n Intelligence Demo"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="flex flex-col items-center text-center p-6">
               <div className="w-16 h-16 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 text-2xl mb-4">
