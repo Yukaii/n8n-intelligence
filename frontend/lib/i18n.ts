@@ -1,0 +1,100 @@
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+import LanguageDetector from 'i18next-browser-languagedetector';
+
+// Define the translations
+const resources = {
+  en: {
+    translation: {
+      // LandingPage translations
+      'heroTitle': 'Workflow <highlight>AI Generator</highlight>',
+      'heroDescription': 'Generate powerful n8n workflows using natural language. Let AI do the heavy lifting.',
+      'getStarted': 'Get Started',
+      'learnMore': 'Learn More',
+      'featuresTitle': 'Powerful <highlight>Features</highlight>',
+      'howItWorksTitle': 'How It <highlight>Works</highlight>',
+      'readyToAutomateTitle': 'Ready to Automate with AI?',
+      'readyToAutomateDescription': 'Start generating powerful n8n workflows in minutes using natural language prompts.',
+      'getStartedNow': 'Get Started Now',
+      'footer': {
+        'allRightsReserved': '© {{year}} n8n Intelligence. All rights reserved.',
+        'github': 'GitHub',
+        'contact': 'Contact',
+      },
+      'features': {
+        'aiWorkflow': {
+          'title': 'AI Workflow Generation',
+          'description': 'Create complex n8n workflows with simple natural language prompts.',
+        },
+        'ragEnhanced': {
+          'title': 'RAG-Enhanced Intelligence',
+          'description': 'Leverage retrieval-augmented generation for context-aware workflows.',
+        },
+        'modernUI': {
+          'title': 'Modern UI/UX',
+          'description': 'Enjoy a seamless experience with our React, shadcn/ui powered interface.',
+        },
+      },
+      'howItWorks': {
+        'step1': {
+          'title': 'Describe Workflow Prompt',
+          'description': 'Use natural language to describe the automation you want to build.',
+        },
+        'step2': {
+          'title': 'Copy and Paste to n8n Canvas',
+          'description': 'Copy the generated workflow and paste it directly into your n8n canvas.',
+        },
+      },
+
+      // App translations
+      'appTitle': '<highlight>n8n</highlight> Workflow <highlight>AI Generator</highlight>',
+      'appDescription': 'Generate powerful n8n workflows using natural language. Tell AI what you want to automate.',
+      'workflowGenerator': 'Workflow Generator',
+      'serverUrlSettings': 'Server URL Settings',
+      'leaveBlank': 'Leave blank to use the default server.',
+      'saveSettings': 'Save Settings',
+      'describeWorkflow': 'Describe your workflow in natural language',
+      'examplePrompts': 'Example prompts:',
+      'loadingQuota': 'Loading quota...',
+      'quotaLeft': 'Quota left:',
+      'resets': 'Resets:',
+      'generateWorkflow': 'Generate Workflow',
+      'generating': 'Generating...',
+      'generationProgress': 'Generation Progress',
+      'generatedWorkflow': 'Generated Workflow',
+      'copyJSON': 'Copy JSON',
+      'copied': 'Copied!',
+      'workflowSuccess': '✓ Workflow generated successfully! You can now copy the JSON and import it into your n8n instance.',
+      'tipsTitle': 'Quick Tips for Better Results',
+      'tips': [
+        'Be specific about which services to connect (e.g., Gmail, Slack, Google Sheets)',
+        'Describe the trigger conditions and frequency (e.g., "when new email arrives", "every Monday")',
+        'Mention specific data transformations or conditions (e.g., "only if subject contains", "format as table")',
+      ],
+      'stepLabels': [
+        { 'icon': '🔍', 'label': 'Extract Keywords' },
+        { 'icon': '🔎', 'label': 'Search Nodes' },
+        { 'icon': '📦', 'label': 'Fetch Nodes' },
+        { 'icon': '🧩', 'label': 'Parse Nodes' },
+        { 'icon': '✨', 'label': 'Generate Workflow' },
+      ],
+    },
+  },
+};
+
+i18n
+  .use(LanguageDetector)
+  .use(initReactI18next)
+  .init({
+    resources,
+    fallbackLng: 'en',
+    interpolation: {
+      escapeValue: false, // React already escapes by default
+    },
+    detection: {
+      order: ['localStorage', 'navigator'],
+      caches: ['localStorage'],
+    },
+  });
+
+export default i18n;
