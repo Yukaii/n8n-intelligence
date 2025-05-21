@@ -43,6 +43,7 @@
     "hono": "^4.7.7",
     "i18next": "^23.10.0",
     "i18next-browser-languagedetector": "^7.2.0",
+    "i18next-http-backend": "^2.5.0",
     "lucide-react": "^0.503.0",
     "openai": "^4.96.0",
     "posthog-js": "^1.236.7",

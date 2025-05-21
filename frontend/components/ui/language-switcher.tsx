@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 
 const languages = [
-  { code: 'en', name: 'English' }
+  { code: 'en', name: 'English' },
+  { code: 'zh-TW', name: '繁體中文' },
+  { code: 'ja', name: '日本語' }
 ];
 
 export function LanguageSwitcher() {
