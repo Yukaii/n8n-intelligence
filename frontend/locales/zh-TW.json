@@ -1,0 +1,71 @@
+{
+  "heroTitle": "工作流程 <highlight>AI 生成器</highlight>",
+  "heroDescription": "使用自然語言生成強大的 n8n 工作流程。讓 AI 為您處理複雜操作。",
+  "getStarted": "立即開始",
+  "learnMore": "了解更多",
+  "featuresTitle": "強大的 <highlight>功能</highlight>",
+  "howItWorksTitle": "運作 <highlight>方式</highlight>",
+  "readyToAutomateTitle": "準備使用 AI 自動化您的工作流程？",
+  "readyToAutomateDescription": "使用自然語言提示，幾分鐘內開始生成強大的 n8n 工作流程。",
+  "getStartedNow": "立即開始",
+  "footer": {
+    "allRightsReserved": "© {{year}} n8n Intelligence。保留所有權利。",
+    "github": "GitHub",
+    "contact": "聯絡我們"
+  },
+  "features": {
+    "aiWorkflow": {
+      "title": "AI 工作流程生成",
+      "description": "使用簡單的自然語言提示創建複雜的 n8n 工作流程。"
+    },
+    "ragEnhanced": {
+      "title": "RAG 增強智能",
+      "description": "利用檢索增強生成技術實現上下文感知的工作流程。"
+    },
+    "modernUI": {
+      "title": "現代化 UI/UX",
+      "description": "使用我們的 React、shadcn/ui 驅動介面，享受無縫體驗。"
+    }
+  },
+  "howItWorks": {
+    "step1": {
+      "title": "描述工作流程提示",
+      "description": "使用自然語言描述您想要建立的自動化流程。"
+    },
+    "step2": {
+      "title": "複製並貼上到 n8n 畫布",
+      "description": "複製生成的工作流程並直接貼上到您的 n8n 畫布中。"
+    }
+  },
+  "appTitle": "<highlight>n8n</highlight> 工作流程 <highlight>AI 生成器</highlight>",
+  "appDescription": "使用自然語言生成強大的 n8n 工作流程。告訴 AI 您想要自動化的內容。",
+  "workflowGenerator": "工作流程生成器",
+  "serverUrlSettings": "伺服器 URL 設定",
+  "leaveBlank": "留空以使用預設伺服器。",
+  "saveSettings": "儲存設定",
+  "describeWorkflow": "用自然語言描述您的工作流程",
+  "examplePrompts": "範例提示：",
+  "loadingQuota": "正在載入配額...",
+  "quotaLeft": "剩餘配額：",
+  "resets": "重置時間：",
+  "generateWorkflow": "生成工作流程",
+  "generating": "生成中...",
+  "generationProgress": "生成進度",
+  "generatedWorkflow": "已生成的工作流程",
+  "copyJSON": "複製 JSON",
+  "copied": "已複製！",
+  "workflowSuccess": "✓ 工作流程生成成功！您現在可以複製 JSON 並將其導入到您的 n8n 實例中。",
+  "tipsTitle": "獲取更好結果的快速提示",
+  "tips": [
+    "具體說明要連接的服務（例如，Gmail、Slack、Google Sheets）",
+    "描述觸發條件和頻率（例如，「當新電子郵件到達時」，「每週一」）",
+    "提及特定的數據轉換或條件（例如，「僅當主題包含」，「格式化為表格」）"
+  ],
+  "stepLabels": [
+    { "icon": "🔍", "label": "提取關鍵詞" },
+    { "icon": "🔎", "label": "搜索節點" },
+    { "icon": "📦", "label": "獲取節點" },
+    { "icon": "🧩", "label": "解析節點" },
+    { "icon": "✨", "label": "生成工作流程" }
+  ]
+}

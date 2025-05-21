@@ -8,6 +8,9 @@ import {
 import { ClerkProvider } from "@clerk/clerk-react";
 import { PostHogProvider } from "posthog-js/react";
 
+// Import i18n configuration
+import "./lib/i18n";
+
 import { routeTree } from "./routeTree.gen";
 
 import "./index.css";

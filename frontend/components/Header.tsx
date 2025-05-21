@@ -7,6 +7,7 @@ import {
   useAuth,
 } from "@clerk/clerk-react";
 import { useMemo } from "react";
+import { LanguageSwitcher } from "./ui/language-switcher";
 
 export function Header() {
   const { isSignedIn } = useAuth();
@@ -26,6 +27,7 @@ export function Header() {
           </div>
         </Link>
         <nav className="flex items-center gap-6">
+          <LanguageSwitcher />
           <SignedIn>
             <Link
               to="/app"

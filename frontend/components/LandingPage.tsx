@@ -1,30 +1,45 @@
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 
 export default function LandingPage() {
+  const { t } = useTranslation();
   const [hoveredFeature, setHoveredFeature] = useState<number | null>(null);
 
   const features = [
     {
-      title: "AI Workflow Generation",
-      description:
-        "Create complex n8n workflows with simple natural language prompts.",
+      title: t('features.aiWorkflow.title'),
+      description: t('features.aiWorkflow.description'),
       icon: "✨",
     },
     {
-      title: "RAG-Enhanced Intelligence",
-      description:
-        "Leverage retrieval-augmented generation for context-aware workflows.",
+      title: t('features.ragEnhanced.title'),
+      description: t('features.ragEnhanced.description'),
       icon: "🧠",
     },
     {
-      title: "Modern UI/UX",
-      description:
-        "Enjoy a seamless experience with our React, shadcn/ui powered interface.",
+      title: t('features.modernUI.title'),
+      description: t('features.modernUI.description'),
       icon: "🎨",
     },
   ];
+  
+  // Function to handle translation strings with highlight tags
+  const renderWithHighlights = (text: string) => {
+    if (!text.includes('<highlight>')) return text;
+    
+    const parts = text.split(/<highlight>|<\/highlight>/);
+    return parts.map((part, index) => {
+      // Every even index (0, 2, 4, ...) is regular text, odd indices are highlighted
+      if (index % 2 === 0) return part;
+      return (
+        <span key={index} className="bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
+          {part}
+        </span>
+      );
+    });
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -35,15 +50,10 @@ export default function LandingPage() {
             <div className="max-w-xl">
               <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-gray-900 dark:text-white">
                 <span className="text-blue-600 dark:text-blue-400">n8n</span>{" "}
-                Workflow
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
-                  {" "}
-                  AI Generator
-                </span>
+                {renderWithHighlights(t('heroTitle'))}
               </h1>
               <p className="mt-4 text-xl text-gray-600 dark:text-gray-300">
-                Generate powerful n8n workflows using natural language. Let AI
-                do the heavy lifting.
+                {t('heroDescription')}
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
                 <Link to="/app">
@@ -51,7 +61,7 @@ export default function LandingPage() {
                     size="lg"
                     className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
                   >
-                    Get Started
+                    {t('getStarted')}
                   </Button>
                 </Link>
                 <Button
@@ -100,7 +110,7 @@ export default function LandingPage() {
                     }
                   }}
                 >
-                  Learn More
+                  {t('learnMore')}
                 </Button>
               </div>
             </div>
@@ -137,8 +147,7 @@ export default function LandingPage() {
       <section id="features" className="py-16 bg-white dark:bg-gray-900">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
           <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-12">
-            Powerful{" "}
-            <span className="text-blue-600 dark:text-blue-400">Features</span>
+            {renderWithHighlights(t('featuresTitle'))}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
@@ -175,8 +184,7 @@ export default function LandingPage() {
       <section className="py-16 bg-gray-50 dark:bg-gray-800">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
           <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-12">
-            How It{" "}
-            <span className="text-blue-600 dark:text-blue-400">Works</span>
+            {renderWithHighlights(t('howItWorksTitle'))}
           </h2>
 
           {/* Video Embed */}
@@ -201,11 +209,10 @@ export default function LandingPage() {
                 1
               </div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                Describe Workflow Prompt
+                {t('howItWorks.step1.title')}
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
-                Use natural language to describe the automation you want to
-                build.
+                {t('howItWorks.step1.description')}
               </p>
             </div>
             <div className="flex flex-col items-center text-center p-6">
@@ -213,11 +220,10 @@ export default function LandingPage() {
                 2
               </div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                Copy and Paste to n8n Canvas
+                {t('howItWorks.step2.title')}
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
-                Copy the generated workflow and paste it directly into your n8n
-                canvas.
+                {t('howItWorks.step2.description')}
               </p>
             </div>
           </div>
@@ -228,18 +234,17 @@ export default function LandingPage() {
       <section className="py-16 bg-blue-600 dark:bg-blue-800">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl text-center">
           <h2 className="text-3xl font-bold text-white mb-4">
-            Ready to Automate with AI?
+            {t('readyToAutomateTitle')}
           </h2>
           <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Start generating powerful n8n workflows in minutes using natural
-            language prompts.
+            {t('readyToAutomateDescription')}
           </p>
           <Link to="/app">
             <Button
               size="lg"
               className="bg-white text-blue-600 hover:bg-blue-50"
             >
-              Get Started Now
+              {t('getStartedNow')}
             </Button>
           </Link>
         </div>
@@ -250,8 +255,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-600 dark:text-gray-400 mb-4 md:mb-0">
-              © {new Date().getFullYear()} n8n Intelligence. All rights
-              reserved.
+              {t('footer.allRightsReserved', { year: new Date().getFullYear() })}
             </p>
             <div className="flex space-x-6">
               {/* <a
@@ -272,7 +276,7 @@ export default function LandingPage() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                GitHub
+                {t('footer.github')}
               </a>
               <a
                 href="https://github.com/Yukaii/n8n-intelligence/issues"
@@ -280,7 +284,7 @@ export default function LandingPage() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Contact
+                {t('footer.contact')}
               </a>
             </div>
           </div>

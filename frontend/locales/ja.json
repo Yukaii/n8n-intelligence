@@ -1,0 +1,71 @@
+{
+  "heroTitle": "ワークフロー <highlight>AI ジェネレーター</highlight>",
+  "heroDescription": "自然言語を使用して強力な n8n ワークフローを生成します。AI に複雑な作業を任せましょう。",
+  "getStarted": "始める",
+  "learnMore": "詳細を見る",
+  "featuresTitle": "強力な <highlight>機能</highlight>",
+  "howItWorksTitle": "使い方の <highlight>説明</highlight>",
+  "readyToAutomateTitle": "AI で自動化する準備はできましたか？",
+  "readyToAutomateDescription": "自然言語プロンプトを使用して、数分で強力な n8n ワークフローの生成を開始します。",
+  "getStartedNow": "今すぐ始める",
+  "footer": {
+    "allRightsReserved": "© {{year}} n8n Intelligence. すべての権利を保有。",
+    "github": "GitHub",
+    "contact": "お問い合わせ"
+  },
+  "features": {
+    "aiWorkflow": {
+      "title": "AI ワークフロー生成",
+      "description": "シンプルな自然言語プロンプトで複雑な n8n ワークフローを作成します。"
+    },
+    "ragEnhanced": {
+      "title": "RAG 強化インテリジェンス",
+      "description": "検索拡張生成を活用して、コンテキスト対応のワークフローを実現します。"
+    },
+    "modernUI": {
+      "title": "モダンな UI/UX",
+      "description": "React、shadcn/ui を搭載したインターフェースで、シームレスな体験をお楽しみください。"
+    }
+  },
+  "howItWorks": {
+    "step1": {
+      "title": "ワークフロープロンプトの説明",
+      "description": "自然言語を使用して、構築したい自動化を説明します。"
+    },
+    "step2": {
+      "title": "n8n キャンバスにコピー＆ペースト",
+      "description": "生成されたワークフローをコピーして、n8n キャンバスに直接貼り付けます。"
+    }
+  },
+  "appTitle": "<highlight>n8n</highlight> ワークフロー <highlight>AI ジェネレーター</highlight>",
+  "appDescription": "自然言語を使用して強力な n8n ワークフローを生成します。自動化したいことを AI に伝えましょう。",
+  "workflowGenerator": "ワークフロージェネレーター",
+  "serverUrlSettings": "サーバー URL 設定",
+  "leaveBlank": "デフォルトのサーバーを使用するには空白のままにしてください。",
+  "saveSettings": "設定を保存",
+  "describeWorkflow": "自然言語でワークフローを説明してください",
+  "examplePrompts": "プロンプト例：",
+  "loadingQuota": "クォータを読み込み中...",
+  "quotaLeft": "残りクォータ：",
+  "resets": "リセット：",
+  "generateWorkflow": "ワークフローを生成",
+  "generating": "生成中...",
+  "generationProgress": "生成の進捗",
+  "generatedWorkflow": "生成されたワークフロー",
+  "copyJSON": "JSON をコピー",
+  "copied": "コピーしました！",
+  "workflowSuccess": "✓ ワークフローが正常に生成されました！JSON をコピーして n8n インスタンスにインポートできます。",
+  "tipsTitle": "より良い結果を得るためのクイックヒント",
+  "tips": [
+    "接続するサービスを具体的に指定する（例：Gmail、Slack、Google Sheets）",
+    "トリガー条件と頻度を説明する（例：「新しいメールが届いたとき」、「毎週月曜日」）",
+    "特定のデータ変換や条件を明記する（例：「件名に特定のキーワードが含まれる場合のみ」、「表形式でフォーマット」）"
+  ],
+  "stepLabels": [
+    { "icon": "🔍", "label": "キーワードの抽出" },
+    { "icon": "🔎", "label": "ノードの検索" },
+    { "icon": "📦", "label": "ノードの取得" },
+    { "icon": "🧩", "label": "ノードの解析" },
+    { "icon": "✨", "label": "ワークフローの生成" }
+  ]
+}

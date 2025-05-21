@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Loader2, Copy, Settings } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 type WorkflowResult = {
   workflow?: Record<string, unknown>;
@@ -52,6 +53,7 @@ function parseSSEMessage(
 }
 
 function App() {
+  const { t } = useTranslation();
   const [prompt, setPrompt] = useState("");
   const [copied, setCopied] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -95,12 +97,28 @@ function App() {
 
   // Step icons and labels for visual representation
   const stepLabels = [
-    { icon: "🔍", label: "Extract Keywords" },
-    { icon: "🔎", label: "Search Nodes" },
-    { icon: "📦", label: "Fetch Nodes" },
-    { icon: "🧩", label: "Parse Nodes" },
-    { icon: "✨", label: "Generate Workflow" },
+    { icon: "🔍", label: t('stepLabels.0.label') },
+    { icon: "🔎", label: t('stepLabels.1.label') },
+    { icon: "📦", label: t('stepLabels.2.label') },
+    { icon: "🧩", label: t('stepLabels.3.label') },
+    { icon: "✨", label: t('stepLabels.4.label') },
   ];
+
+  // Function to handle translation strings with highlight tags
+  const renderWithHighlights = (text: string) => {
+    if (!text.includes('<highlight>')) return text;
+    
+    const parts = text.split(/<highlight>|<\/highlight>/);
+    return parts.map((part, index) => {
+      // Every even index (0, 2, 4, ...) is regular text, odd indices are highlighted
+      if (index % 2 === 0) return part;
+      return (
+        <span key={index} className="bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
+          {part}
+        </span>
+      );
+    });
+  };
 
   useEffect(() => {
     const stored = localStorage.getItem("serverUrl") || "";
@@ -281,16 +299,10 @@ function App() {
         {/* Header Section */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-4">
-            <span className="text-blue-600 dark:text-blue-400">n8n</span>{" "}
-            Workflow
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
-              {" "}
-              AI Generator
-            </span>
+            {renderWithHighlights(t('appTitle'))}
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Generate powerful n8n workflows using natural language. Tell AI what
-            you want to automate.
+            {t('appDescription')}
           </p>
         </div>
 
@@ -303,7 +315,7 @@ function App() {
               <div className="h-3 w-3 rounded-full bg-yellow-500" />
               <div className="h-3 w-3 rounded-full bg-green-500" />
               <div className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-200">
-                Workflow Generator
+                {t('workflowGenerator')}
               </div>
             </div>
 
@@ -321,7 +333,7 @@ function App() {
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle className="text-xl font-bold">
-                    Server URL Settings
+                    {t('serverUrlSettings')}
                   </DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
@@ -332,7 +344,7 @@ function App() {
                     className="w-full"
                   />
                   <div className="text-sm text-gray-500 dark:text-gray-400">
-                    Leave blank to use the default server.
+                    {t('leaveBlank')}
                   </div>
                 </div>
                 <DialogFooter>
@@ -340,7 +352,7 @@ function App() {
                     onClick={handleSaveServerUrl}
                     className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
                   >
-                    Save Settings
+                    {t('saveSettings')}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -366,7 +378,7 @@ function App() {
                 return (
                   <div className="mb-4">
                     <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                      Example prompts:
+                      {t('examplePrompts')}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {examples.map((ex) => (
@@ -387,7 +399,7 @@ function App() {
                 htmlFor="prompt"
                 className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
               >
-                Describe your workflow in natural language
+                {t('describeWorkflow')}
               </label>
               <Textarea
                 id="prompt"
@@ -405,7 +417,7 @@ function App() {
             <div className="mb-2">
               {quotaLoading ? (
                 <span className="text-sm text-gray-500 dark:text-gray-400">
-                  Loading quota...
+                  {t('loadingQuota')}
                 </span>
               ) : quotaError ? (
                 <span className="text-sm text-red-500 dark:text-red-400">
@@ -413,10 +425,10 @@ function App() {
                 </span>
               ) : quota ? (
                 <span className="text-sm text-gray-700 dark:text-gray-300">
-                  Quota left:{" "}
+                  {t('quotaLeft')}{" "}
                   <span className="font-semibold">{quota.remaining}</span>
                   {" | "}
-                  Resets:{" "}
+                  {t('resets')}{" "}
                   <span>
                     {new Date(quota.reset).toLocaleString(undefined, {
                       hour12: false,
@@ -444,10 +456,10 @@ function App() {
                 {isLoading ? (
                   <>
                     <Loader2 className="animate-spin mr-2" />
-                    Generating...
+                    {t('generating')}
                   </>
                 ) : (
-                  "Generate Workflow"
+                  t('generateWorkflow')
                 )}
               </Button>
 
@@ -464,7 +476,7 @@ function App() {
               <div className="my-6">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Generation Progress
+                    {t('generationProgress')}
                   </span>
                   <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
                     {Math.round(
@@ -516,7 +528,7 @@ function App() {
               <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                    Generated Workflow
+                    {t('generatedWorkflow')}
                   </h2>
 
                   {finalResult.workflow && (
@@ -527,7 +539,7 @@ function App() {
                       className="flex items-center gap-1 border-blue-200 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-900"
                     >
                       <Copy className="w-4 h-4" />
-                      <span>{copied ? "Copied!" : "Copy JSON"}</span>
+                      <span>{copied ? t('copied') : t('copyJSON')}</span>
                     </Button>
                   )}
                 </div>
@@ -547,8 +559,7 @@ function App() {
 
                 {/* Success Message */}
                 <div className="mt-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-sm">
-                  ✓ Workflow generated successfully! You can now copy the JSON
-                  and import it into your n8n instance.
+                  {t('workflowSuccess')}
                 </div>
               </div>
             )}
@@ -559,30 +570,15 @@ function App() {
         {!finalResult && !isLoading && !error && (
           <div className="mt-8 p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-100 dark:border-gray-700">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Quick Tips for Better Results
+              {t('tipsTitle')}
             </h3>
             <ul className="space-y-2 text-gray-600 dark:text-gray-300">
-              <li className="flex items-start gap-2">
-                <span className="text-blue-500 dark:text-blue-400">•</span>
-                <span>
-                  Be specific about which services to connect (e.g., Gmail,
-                  Slack, Google Sheets)
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-blue-500 dark:text-blue-400">•</span>
-                <span>
-                  Describe the trigger conditions and frequency (e.g., "when new
-                  email arrives", "every Monday")
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-blue-500 dark:text-blue-400">•</span>
-                <span>
-                  Mention specific data transformations or conditions (e.g.,
-                  "only if subject contains", "format as table")
-                </span>
-              </li>
+              {t('tips', { returnObjects: true }).map((tip, index) => (
+                <li key={index} className="flex items-start gap-2">
+                  <span className="text-blue-500 dark:text-blue-400">•</span>
+                  <span>{tip}</span>
+                </li>
+              ))}
             </ul>
           </div>
         )}
